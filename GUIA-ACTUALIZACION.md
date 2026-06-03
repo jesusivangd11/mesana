@@ -34,22 +34,21 @@ Tus datos quedan intactos siempre.
 
 Esto se hace UNA sola vez para conectar la carpeta instalada con GitHub:
 
-1. Instala **Git para Windows**: https://git-scm.com/download/win
-2. Abre una terminal dentro de la carpeta de Mesana y ejecuta:
-
-   ```
-   git init -b main
-   git remote add origin URL_DEL_REPOSITORIO
-   git fetch origin
-   git reset --hard origin/main
-   ```
-
-   (Reemplaza `URL_DEL_REPOSITORIO` por la de tu repo de GitHub.)
+1. **Respaldo de seguridad:** copia la `database.db` actual a una USB.
+2. Instala **Git para Windows**: https://git-scm.com/download/win
+   (Acepta todas las opciones por defecto durante la instalación.)
+3. Copia los archivos `Conectar PC trabajo.cmd`, `Actualizar Mesana.cmd`
+   y `GUIA-ACTUALIZACION.md` a la carpeta de Mesana de la PC de trabajo
+   (vienen incluidos al conectar, pero para el primer enlace cópialos
+   manualmente desde una USB o descárgalos del repo).
+4. Doble clic en **`Conectar PC trabajo.cmd`** → escribe `SI`.
    La primera vez te pedirá iniciar sesión en GitHub; queda guardada.
+5. Abre Mesana una vez (migra la base de datos a la carpeta de datos).
 
-3. Abre Mesana una vez (migra la base de datos a la carpeta de datos).
+A partir de ahí, actualizar = doble clic en **`Actualizar Mesana.cmd`**.
 
-A partir de ahí, actualizar = doble clic en `Actualizar Mesana.cmd`.
+> El repositorio es **privado**: al conectar y al actualizar, Git pedirá
+> tu cuenta de GitHub la primera vez (queda guardada para las siguientes).
 
 ---
 
