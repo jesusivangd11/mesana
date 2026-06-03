@@ -1,0 +1,22 @@
+# --- Datos (NUNCA se suben ni se tocan al actualizar) ---
+database.db
+database.db.migrado
+backups/
+
+# --- Dependencias y runtime (vienen del instalador, no del repo) ---
+node_modules/
+runtime/
+
+# --- Artefactos del instalador ---
+unins000.dat
+unins000.exe
+
+# --- Config local de Claude Code ---
+.claude/
+
+# --- Salidas de herramientas / temporales ---
+graphify-out/
+*.log
+.graphify_*
+mesana_out.txt
+mesana_err.txt
