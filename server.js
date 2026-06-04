@@ -153,6 +153,19 @@ function createTables() {
       items TEXT NOT NULL
     )`);
 
+    // Parked orders (tickets pausados) table
+    db.run(`CREATE TABLE IF NOT EXISTS parked_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT,
+      type TEXT,
+      mesa TEXT,
+      comensales INTEGER,
+      notes TEXT,
+      waiter TEXT,
+      items TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    )`);
+
     // Sales records table
     db.run(`CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,15 +184,21 @@ function createTables() {
       subtotal REAL,
       tax REAL,
       total REAL,
-      cost REAL
+      cost REAL,
+      payments TEXT,
+      amountReceived REAL,
+      change REAL
     )`);
 
     // Migrate sales table: add missing columns if they don't exist
     db.all("PRAGMA table_info(sales)", [], (err, cols) => {
       if (err || !cols) return;
       const names = cols.map(c => c.name);
-      if (!names.includes('ticketNumber')) db.run("ALTER TABLE sales ADD COLUMN ticketNumber INTEGER DEFAULT 0");
-      if (!names.includes('ticketDate'))   db.run("ALTER TABLE sales ADD COLUMN ticketDate TEXT DEFAULT ''");
+      if (!names.includes('ticketNumber'))   db.run("ALTER TABLE sales ADD COLUMN ticketNumber INTEGER DEFAULT 0");
+      if (!names.includes('ticketDate'))     db.run("ALTER TABLE sales ADD COLUMN ticketDate TEXT DEFAULT ''");
+      if (!names.includes('payments'))       db.run("ALTER TABLE sales ADD COLUMN payments TEXT");
+      if (!names.includes('amountReceived')) db.run("ALTER TABLE sales ADD COLUMN amountReceived REAL");
+      if (!names.includes('change'))         db.run("ALTER TABLE sales ADD COLUMN change REAL");
     });
 
     // Movements/Logs table
@@ -349,9 +368,9 @@ app.delete('/api/orders/:id', (req, res) => {
   });
 });
 
-// Sales
-app.get('/api/sales', (req, res) => {
-  db.all('SELECT * FROM sales', [], (err, rows) => {
+// Parked orders (tickets pausados)
+app.get('/api/parked', (req, res) => {
+  db.all('SELECT * FROM parked_orders', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     rows.forEach(row => {
       try { row.items = row.items ? JSON.parse(row.items) : []; }
@@ -361,12 +380,44 @@ app.get('/api/sales', (req, res) => {
   });
 });
 
+app.post('/api/parked', (req, res) => {
+  const { label, type, mesa, comensales, notes, waiter, items } = req.body;
+  const createdAt = new Date().toISOString();
+  db.run('INSERT INTO parked_orders (label, type, mesa, comensales, notes, waiter, items, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [label, type, mesa, comensales, notes, waiter, JSON.stringify(items), createdAt], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, createdAt });
+  });
+});
+
+app.delete('/api/parked/:id', (req, res) => {
+  db.run('DELETE FROM parked_orders WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ changes: this.changes });
+  });
+});
+
+// Sales
+app.get('/api/sales', (req, res) => {
+  db.all('SELECT * FROM sales', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    rows.forEach(row => {
+      try { row.items = row.items ? JSON.parse(row.items) : []; }
+      catch { row.items = []; }
+      try { row.payments = row.payments ? JSON.parse(row.payments) : []; }
+      catch { row.payments = []; }
+    });
+    res.json(rows);
+  });
+});
+
 app.post('/api/sales', (req, res) => {
-  const { ticketNumber, ticketDate, type, mesa, comensales, waiter, notes, paymentMethod, status, items, subtotal, tax, total, cost } = req.body;
+  const { ticketNumber, ticketDate, type, mesa, comensales, waiter, notes, paymentMethod, status, items, subtotal, tax, total, cost, payments, amountReceived, change } = req.body;
   const createdAt = new Date().toISOString();
   const completedAt = createdAt;
-  db.run('INSERT INTO sales (ticketNumber, ticketDate, createdAt, completedAt, type, mesa, comensales, waiter, notes, paymentMethod, status, items, subtotal, tax, total, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [ticketNumber, ticketDate, createdAt, completedAt, type, mesa, comensales, waiter, notes, paymentMethod, status, JSON.stringify(items), subtotal, tax, total, cost], function(err) {
+  const paymentsJson = JSON.stringify(Array.isArray(payments) ? payments : []);
+  db.run('INSERT INTO sales (ticketNumber, ticketDate, createdAt, completedAt, type, mesa, comensales, waiter, notes, paymentMethod, status, items, subtotal, tax, total, cost, payments, amountReceived, change) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [ticketNumber, ticketDate, createdAt, completedAt, type, mesa, comensales, waiter, notes, paymentMethod, status, JSON.stringify(items), subtotal, tax, total, cost, paymentsJson, amountReceived ?? null, change ?? null], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: this.lastID, ticketNumber, ticketDate });
   });

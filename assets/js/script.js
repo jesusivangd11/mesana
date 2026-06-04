@@ -168,6 +168,7 @@ function createDefaultState() {
     employees: createDefaultEmployees(),
     products: createDefaultProducts(),
     commandas: createDefaultCommandas(),
+    parkedOrders: [],
     salesRecords: createDefaultSalesRecords(),
     categories: [
       { id: 1, name: 'Platos Fuertes' },
@@ -211,14 +212,15 @@ function resetOrder() {
 // ===================== API =====================
 async function loadDataFromAPI() {
   try {
-    const [productsRes, ordersRes, salesRes, usersRes, settingsRes, categoriesRes, combosRes] = await Promise.all([
+    const [productsRes, ordersRes, salesRes, usersRes, settingsRes, categoriesRes, combosRes, parkedRes] = await Promise.all([
       fetch('/api/products'),
       fetch('/api/orders'),
       fetch('/api/sales'),
       fetch('/api/users'),
       fetch('/api/settings'),
       fetch('/api/categories'),
-      fetch('/api/combos')
+      fetch('/api/combos'),
+      fetch('/api/parked')
     ]);
     state.products = await productsRes.json();
     state.commandas = await ordersRes.json();
@@ -229,6 +231,7 @@ async function loadDataFromAPI() {
     state.settings = await settingsRes.json();
     state.categories = await categoriesRes.json();
     state.combos = await combosRes.json();
+    try { state.parkedOrders = parkedRes.ok ? await parkedRes.json() : []; } catch { state.parkedOrders = []; }
     // Check and reset daily counter if new day
     const today = new Date().toISOString().split('T')[0];
     if (state.settings.lastOrderDate !== today) {
@@ -705,6 +708,33 @@ function getTopProducts(limit) {
     .slice(0, limit);
 }
 
+function getTopVariants(limit) {
+  const map = new Map();
+  const addVariant = (name, variantLabel, qty, price) => {
+    if (!variantLabel) return;
+    const key = `${name} · ${variantLabel}`;
+    const entry = map.get(key) || { label: key, name, variantLabel, qty: 0, revenue: 0 };
+    entry.qty += qty;
+    entry.revenue += qty * (price || 0);
+    map.set(key, entry);
+  };
+  state.salesRecords.forEach((sale) => {
+    if (sale.status !== 'Pagado') return;
+    const items = Array.isArray(sale.items)
+      ? sale.items
+      : (typeof sale.items === 'string' ? (() => { try { return JSON.parse(sale.items); } catch { return []; } })() : []);
+    items.forEach((item) => {
+      addVariant(item.name, item.variantLabel, item.qty, item.price);
+      if (item.isCombo && Array.isArray(item.comboItems)) {
+        item.comboItems.forEach((ci) => addVariant(ci.name || '', ci.variantLabel, (ci.qty || 1) * (item.qty || 1), 0));
+      }
+    });
+  });
+  return [...map.values()]
+    .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
+    .slice(0, limit);
+}
+
 function getCategorySalesBreakdown() {
   const totals = {};
   let grandTotal = 0;
@@ -892,10 +922,9 @@ function navigateTo(id) {
   const showSearch = ['pos', 'products', 'inventory'].includes(id);
   document.getElementById('gSearchBar').style.display = showSearch ? 'flex' : 'none';
   if (!showSearch) document.getElementById('gSearch').value = '';
-  if (id !== 'pos' || !editingComandaId) {
-    if (id !== 'pos') editingComandaId = null;
-    if (id === 'pos' && !editingComandaId) currentOrder = createEmptyOrder();
-  }
+  // El ticket en curso (currentOrder) y el contexto de edicion se preservan al
+  // navegar entre interfaces. Solo se limpian con resetOrder() (tras enviar /
+  // completar / cancelar) o con clearOrder() (boton de limpiar la orden).
   renderPage(id);
 }
 
@@ -1049,7 +1078,15 @@ function buildPOS() {
               Ticket
             </button>
           </div>
-          <div style="display:flex;gap:7px">
+          <div style="display:flex;gap:7px;margin-top:7px">
+            <button class="btn btn-secondary" style="flex:1" onclick="parkCurrentOrder()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Pausar
+            </button>
+            <button class="btn btn-secondary" style="flex:1" onclick="openParkedModal()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Pausados${(state.parkedOrders && state.parkedOrders.length) ? ` (${state.parkedOrders.length})` : ''}
+            </button>
             <button class="btn btn-danger" style="flex:1" onclick="clearOrder()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               Limpiar
@@ -1706,6 +1743,107 @@ function clearOrder() {
   refreshOrderPanel();
 }
 
+// ===================== TICKETS PAUSADOS =====================
+async function parkCurrentOrder() {
+  if (!currentOrder.items.length) {
+    showToast('No hay productos para pausar', 'error');
+    return;
+  }
+  const label = currentOrder.type === 'llevar' ? 'Para llevar' : (currentOrder.mesa || 'Sin mesa');
+  const payload = {
+    label,
+    type: currentOrder.type || 'comedor',
+    mesa: currentOrder.mesa || '',
+    comensales: currentOrder.comensales || 1,
+    notes: currentOrder.notes || '',
+    waiter: currentUser.name,
+    items: currentOrder.items.map((item) => ({ ...item })),
+  };
+  try {
+    const res = await fetch('/api/parked', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const { id, createdAt } = await res.json();
+    if (!state.parkedOrders) state.parkedOrders = [];
+    state.parkedOrders.push({ id, createdAt, ...payload });
+    resetOrder();
+    refreshOrderPanel();
+    showToast('Ticket pausado', 'success');
+  } catch (error) {
+    console.error('Error al pausar ticket:', error);
+    showToast('Error al pausar el ticket', 'error');
+  }
+}
+
+function openParkedModal() {
+  document.getElementById('parkedModal')?.remove();
+  const list = state.parkedOrders || [];
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.id = 'parkedModal';
+  const body = list.length
+    ? list.map((p) => {
+        const items = Array.isArray(p.items) ? p.items : [];
+        const count = items.reduce((s, i) => s + (i.qty || 0), 0);
+        const preview = items.slice(0, 3).map((i) => `${i.qty}x ${esc(i.name)}`).join(', ');
+        const more = items.length > 3 ? '…' : '';
+        return `<div class="card" style="padding:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px">
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:13px;color:var(--charcoal)">${esc(p.label || 'Ticket')} · <span style="color:var(--stone);font-weight:500">${count} art.</span></div>
+            <div style="font-size:11.5px;color:var(--stone);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">${preview}${more}</div>
+            <div style="font-size:10.5px;color:var(--stone);margin-top:2px">Pausado hace ${minutesAgo(p.createdAt)} · ${esc(p.waiter || '')}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-primary btn-sm" onclick="resumeParkedOrder(${p.id})">Retomar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteParkedOrder(${p.id})">Eliminar</button>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="text-align:center;padding:30px 20px;color:var(--stone);font-size:13px">No hay tickets pausados</div>`;
+  overlay.innerHTML = `<div class="modal" style="width:520px;max-width:94vw">
+    <div class="modal-header"><h3>Tickets pausados</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+    <div class="modal-body" style="padding:18px;max-height:62vh;overflow-y:auto">${body}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function resumeParkedOrder(id) {
+  const list = state.parkedOrders || [];
+  const parked = list.find((p) => p.id === id);
+  if (!parked) return;
+  // Si hay una orden en curso con productos, pausarla primero para no perderla.
+  if (currentOrder.items.length) {
+    await parkCurrentOrder();
+  }
+  // Quitar el retomado de pausados (backend + memoria)
+  try { await fetch(`/api/parked/${id}`, { method: 'DELETE' }); } catch {}
+  const fresh = state.parkedOrders || [];
+  const fi = fresh.findIndex((p) => p.id === id);
+  if (fi !== -1) fresh.splice(fi, 1);
+  // Cargar a la orden actual
+  editingComandaId = null;
+  currentOrder = {
+    items: (parked.items || []).map((item) => ({ ...item })),
+    type: parked.type || 'comedor',
+    mesa: parked.mesa || 'Mesa 1',
+    comensales: parked.comensales || 2,
+    notes: parked.notes || '',
+  };
+  document.getElementById('parkedModal')?.remove();
+  navigateTo('pos');
+  showToast('Ticket retomado', 'success');
+}
+
+async function deleteParkedOrder(id) {
+  try { await fetch(`/api/parked/${id}`, { method: 'DELETE' }); } catch {}
+  const list = state.parkedOrders || [];
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx !== -1) list.splice(idx, 1);
+  openParkedModal();
+}
+
 async function sendComanda() {
   if (!currentOrder.type) {
     openOrderTypeModal();
@@ -1927,6 +2065,9 @@ function buildComandas() {
             <span style="font-size:14px;font-weight:700;color:var(--sidebar-bg)">Orden <span class="order-num">#${comanda.ticketNumber}</span></span>
             <span class="badge ${comanda.type === 'llevar' ? 'badge-amber' : 'badge-green'}">${comanda.type === 'llevar' ? 'Para llevar' : esc(comanda.mesa)}</span>
           </div>
+          <div style="margin-bottom:9px">
+            <span class="badge badge-green" style="font-size:10px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:5px"><span class="live-dot"></span>ACTIVO · En cocina</span>
+          </div>
           <div style="font-size:11.5px;color:var(--stone);margin-bottom:8px">Hace ${minutesAgo(comanda.createdAt)} · ${esc(comanda.waiter)} · ${comanda.comensales} pax</div>
           <div style="border-top:1px solid var(--stone-pale);padding-top:8px;margin-bottom:8px">
             ${comanda.items.map((item) => `
@@ -1967,7 +2108,144 @@ function editComanda(id) {
   navigateTo('pos');
 }
 
-async function completeComanda(id) {
+// Al "Completar" se abre el modal de cobro (metodo de pago + cambio).
+function completeComanda(id) {
+  openPaymentModal(id);
+}
+
+let paymentDraft = null;
+const PAYMENT_METHODS = ['Efectivo', 'Transferencia', 'Tarjeta'];
+
+function openPaymentModal(id) {
+  const comanda = state.commandas.find((c) => c.id === id);
+  if (!comanda) return;
+  const totals = calculateTotals(comanda.items);
+  paymentDraft = {
+    comandaId: id,
+    total: totals.total,
+    lines: [{ method: 'Efectivo', amount: Number(totals.total.toFixed(2)) }],
+  };
+  document.getElementById('paymentModal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.id = 'paymentModal';
+  overlay.innerHTML = `<div class="modal" style="width:460px;max-width:94vw">
+    <div class="modal-header"><h3>Cobro · Comanda #${comanda.ticketNumber}</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+    <div class="modal-body" style="padding:18px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--stone)">Total a cobrar</div>
+        <div style="font-size:34px;font-weight:800;color:var(--charcoal);font-family:var(--mono)">$${fmt(paymentDraft.total)}</div>
+      </div>
+      <div id="payLines"></div>
+      <button id="payAddBtn" class="btn btn-secondary btn-sm btn-full" style="margin-bottom:14px" onclick="paymentAddLine()">+ Agregar metodo de pago</button>
+      <div style="background:var(--surface-alt);border-radius:var(--r);padding:12px 14px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Pagado</span><span id="payPagado" style="font-weight:700;font-family:var(--mono)">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Restante</span><span id="payRestante" style="font-weight:700;font-family:var(--mono)">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-weight:700">Cambio</span><span id="payCambio" style="font-weight:800;font-family:var(--mono);color:var(--accent-dark);font-size:15px">$0.00</span></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-secondary" style="flex:1" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button id="payConfirmBtn" class="btn btn-primary" style="flex:2" onclick="confirmPayment()">Confirmar y completar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  renderPaymentLines();
+  paymentRecalc();
+}
+
+function renderPaymentLines() {
+  const container = document.getElementById('payLines');
+  if (!container || !paymentDraft) return;
+  container.innerHTML = paymentDraft.lines.map((line, i) => `
+    <div style="display:flex;gap:7px;margin-bottom:8px;align-items:center">
+      <select onchange="paymentRecalc()" id="payMethod${i}" style="flex:1;border:1px solid var(--stone-pale);border-radius:var(--r);padding:8px;font-size:13px;background:var(--surface);color:var(--charcoal)">
+        ${PAYMENT_METHODS.map((m) => `<option value="${m}" ${m === line.method ? 'selected' : ''}>${m}</option>`).join('')}
+      </select>
+      <div style="position:relative;flex:1">
+        <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--stone);font-size:13px">$</span>
+        <input type="number" min="0" step="0.01" id="payAmt${i}" value="${line.amount != null ? line.amount : ''}" oninput="paymentRecalc()" style="width:100%;border:1px solid var(--stone-pale);border-radius:var(--r);padding:8px 8px 8px 20px;font-size:13px;font-family:var(--mono);background:var(--surface);color:var(--charcoal)">
+      </div>
+      ${paymentDraft.lines.length > 1 ? `<button class="btn btn-danger btn-sm" onclick="paymentRemoveLine(${i})" style="padding:6px 9px">×</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function paymentSyncFromDOM() {
+  if (!paymentDraft) return;
+  paymentDraft.lines.forEach((line, i) => {
+    const m = document.getElementById(`payMethod${i}`);
+    const a = document.getElementById(`payAmt${i}`);
+    if (m) line.method = m.value;
+    if (a) line.amount = a.value === '' ? null : parseFloat(a.value);
+  });
+}
+
+function paymentAddLine() {
+  if (!paymentDraft || paymentDraft.lines.length >= 3) return;
+  paymentSyncFromDOM();
+  const paid = paymentDraft.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+  const remaining = Math.max(0, paymentDraft.total - paid);
+  const used = paymentDraft.lines.map((l) => l.method);
+  const nextMethod = PAYMENT_METHODS.find((m) => !used.includes(m)) || 'Efectivo';
+  paymentDraft.lines.push({ method: nextMethod, amount: remaining ? Number(remaining.toFixed(2)) : null });
+  renderPaymentLines();
+  paymentRecalc();
+}
+
+function paymentRemoveLine(i) {
+  if (!paymentDraft) return;
+  paymentSyncFromDOM();
+  paymentDraft.lines.splice(i, 1);
+  renderPaymentLines();
+  paymentRecalc();
+}
+
+function paymentRecalc() {
+  if (!paymentDraft) return;
+  paymentSyncFromDOM();
+  const paid = paymentDraft.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+  const remaining = Math.max(0, paymentDraft.total - paid);
+  const change = Math.max(0, paid - paymentDraft.total);
+  const pagadoEl = document.getElementById('payPagado');
+  const restEl = document.getElementById('payRestante');
+  const cambioEl = document.getElementById('payCambio');
+  if (pagadoEl) pagadoEl.textContent = `$${fmt(paid)}`;
+  if (restEl) { restEl.textContent = `$${fmt(remaining)}`; restEl.style.color = remaining > 0.001 ? 'var(--rose)' : 'var(--stone)'; }
+  if (cambioEl) cambioEl.textContent = `$${fmt(change)}`;
+  const addBtn = document.getElementById('payAddBtn');
+  if (addBtn) addBtn.style.display = paymentDraft.lines.length >= 3 ? 'none' : 'block';
+  const confirmBtn = document.getElementById('payConfirmBtn');
+  if (confirmBtn) confirmBtn.disabled = remaining > 0.001;
+}
+
+async function confirmPayment() {
+  if (!paymentDraft) return;
+  paymentSyncFromDOM();
+  const paid = paymentDraft.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+  if (paid + 0.001 < paymentDraft.total) {
+    showToast('El pago no cubre el total', 'error');
+    return;
+  }
+  const change = Math.max(0, paid - paymentDraft.total);
+  const payments = paymentDraft.lines
+    .filter((l) => (parseFloat(l.amount) || 0) > 0)
+    .map((l) => ({ method: l.method, amount: Number((parseFloat(l.amount) || 0).toFixed(2)) }));
+  const methodSummary = [...new Set(payments.map((p) => p.method))].join(' + ') || 'Efectivo';
+  const cashReceived = payments.filter((p) => p.method === 'Efectivo').reduce((s, p) => s + p.amount, 0);
+  const paymentInfo = {
+    paymentMethod: methodSummary,
+    payments,
+    amountReceived: cashReceived || null,
+    change: Number(change.toFixed(2)),
+  };
+  const id = paymentDraft.comandaId;
+  document.getElementById('paymentModal')?.remove();
+  paymentDraft = null;
+  await finalizeSale(id, paymentInfo);
+}
+
+async function finalizeSale(id, paymentInfo) {
   const index = state.commandas.findIndex((comanda) => comanda.id === id);
   if (index === -1) return;
   const comanda = state.commandas[index];
@@ -1982,7 +2260,10 @@ async function completeComanda(id) {
     comensales: comanda.comensales,
     notes: comanda.notes,
     waiter: comanda.waiter,
-    paymentMethod: 'Efectivo',
+    paymentMethod: paymentInfo.paymentMethod,
+    payments: paymentInfo.payments,
+    amountReceived: paymentInfo.amountReceived,
+    change: paymentInfo.change,
     status: 'Pagado',
     items: comanda.items.map((item) => ({ ...item })),
     subtotal: totals.subtotal,
@@ -2007,7 +2288,8 @@ async function completeComanda(id) {
     }
     updateBadge();
     renderPage('comandas');
-    showToast(`Comanda #${comanda.ticketNumber} completada`, 'success');
+    const changeMsg = paymentInfo.change > 0 ? ` · Cambio $${fmt(paymentInfo.change)}` : '';
+    showToast(`Comanda #${comanda.ticketNumber} cobrada (${paymentInfo.paymentMethod})${changeMsg}`, 'success');
   } catch (error) {
     console.error('Error completing comanda:', error);
     showToast('Error al completar comanda', 'error');
@@ -2995,6 +3277,23 @@ function buildFinances() {
         `).join('')}
       </div>
     </div>
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-title">Variantes mas vendidas</div>
+      ${(() => {
+        const tv = getTopVariants(10);
+        if (!tv.length) return `<div style="padding:18px;text-align:center;color:var(--stone);font-size:13px">Aun no hay ventas con variantes registradas</div>`;
+        const max = tv[0].qty || 1;
+        return tv.map((v, i) => `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+              <span><span style="font-family:var(--mono);color:var(--stone)">${i + 1}.</span> ${esc(v.label)}</span>
+              <span style="font-weight:700;white-space:nowrap">${v.qty} vendida${v.qty === 1 ? '' : 's'}</span>
+            </div>
+            <div class="inv-bar"><div style="height:100%;background:var(--accent);border-radius:3px;width:${Math.round((v.qty / max) * 100)}%"></div></div>
+          </div>
+        `).join('');
+      })()}
+    </div>
   </div>`;
 }
 
@@ -3169,6 +3468,7 @@ function renderSaleDetailHTML() {
   });
   if (!sale) return '';
   const saleItems = Array.isArray(sale.items) ? sale.items : (typeof sale.items === 'string' ? (() => { try { return JSON.parse(sale.items); } catch { return []; } })() : []);
+  const salePayments = Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? (() => { try { return JSON.parse(sale.payments); } catch { return []; } })() : []);
   const dateStr = new Date(sale.completedAt).toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const cancelled = sale.status === 'Cancelado';
   return `<div style="padding:20px;position:relative;overflow:hidden">
@@ -3235,6 +3535,16 @@ function renderSaleDetailHTML() {
         Eliminar venta
       </button>` : ''}
     </div>
+
+    ${!cancelled && (salePayments.length || sale.change > 0) ? `
+    <div style="margin-top:14px;background:var(--surface-alt);border-radius:var(--r);padding:11px 14px;font-size:12.5px">
+      <div style="font-size:10px;color:var(--stone);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Detalle de pago</div>
+      ${salePayments.length
+        ? salePayments.map(p => `<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>${esc(p.method)}</span><span style="font-family:var(--mono)">$${fmt(p.amount)}</span></div>`).join('')
+        : `<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>${esc(sale.paymentMethod||'Efectivo')}</span><span style="font-family:var(--mono)">$${fmt(sale.total)}</span></div>`}
+      ${sale.amountReceived ? `<div style="display:flex;justify-content:space-between;margin-bottom:3px;color:var(--stone)"><span>Recibido (efectivo)</span><span style="font-family:var(--mono)">$${fmt(sale.amountReceived)}</span></div>` : ''}
+      ${sale.change > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:800;color:var(--accent-dark);border-top:1px dashed var(--stone-pale);padding-top:5px;margin-top:4px"><span>Cambio</span><span style="font-family:var(--mono)">$${fmt(sale.change)}</span></div>` : ''}
+    </div>` : ''}
   </div></div>`;
 }
 
