@@ -1,62 +1,65 @@
-# Guía de actualización de Mesana
+# Guía de Mesana 3.0 — Instalador y actualizaciones
 
-Cómo actualizar el programa sin mover archivos a mano y sin perder datos.
+Desde la versión **3.0**, Mesana es una **aplicación de escritorio** de verdad:
+se instala con un instalador `.exe` (como cualquier programa) y se abre en su
+propia ventana. Ya **no** usa la ventana negra (cmd) ni el navegador.
 
-## Idea clave
+## Idea clave (lo que nunca cambia)
 
-- **El código** (la app) vive en esta carpeta y se controla con Git/GitHub.
+- **El programa** se instala con el instalador. Al actualizar, se reinstala encima.
 - **Los datos** (ventas, productos, respaldos) viven aparte, en
   `%LOCALAPPDATA%\Mesana` (normalmente `C:\Users\TU_USUARIO\AppData\Local\Mesana`).
-- Por eso, actualizar el código **nunca** toca tus datos.
-
-La primera vez que corre la versión nueva, la base de datos vieja que estaba
-dentro de la carpeta del programa se **mueve sola** a la carpeta de datos
-(la original queda como `database.db.migrado` por seguridad).
+- Por eso, **actualizar el programa nunca toca tus datos**. La versión 3.0 usa la
+  misma carpeta de datos que la 2.0, así que al pasar de 2.0 a 3.0 **no se pierde nada**.
 
 ---
 
-## PC de desarrollo (donde haces cambios)
+## PC de desarrollo (donde haces cambios y creas el instalador)
 
 1. Haces tus cambios en el código.
-2. Doble clic en **`Subir cambios.cmd`** → escribes una descripción → Enter.
-   Eso sube los cambios a GitHub.
+2. Doble clic en **`Crear instalador.cmd`** (o en una terminal: `npm run dist`).
+   - Genera el instalador en la carpeta **`dist-installer`**:
+     `Mesana 3.0 Setup 3.0.0.exe`.
+3. (Opcional, respaldo del código) Doble clic en **`Subir cambios.cmd`** para subir
+   el código a GitHub.
+
+> Para subir la versión (3.0.0 → 3.0.1, etc.) cambia `"version"` en `package.json`
+> antes de crear el instalador. El nombre del `.exe` cambia solo con la versión.
 
 ## PC de trabajo (donde se usa Mesana)
 
-1. Doble clic en **`Actualizar Mesana.cmd`** → descarga la última versión.
-2. Cierra y vuelve a abrir Mesana.
+**Actualizar a una versión nueva:**
 
-Tus datos quedan intactos siempre.
+1. Copia el archivo `Mesana 3.0 Setup X.X.X.exe` a la PC de trabajo (USB o descarga).
+2. Doble clic en el instalador → **Siguiente / Instalar**.
+3. Listo. Se abre sola y tus datos siguen intactos.
+
+El acceso directo **"Mesana 3.0"** queda en el Escritorio y en el menú Inicio.
 
 ---
 
-## Instalación por única vez en la PC de trabajo
+## Instalación por primera vez en la PC de trabajo (viniendo de la 2.0)
 
-Esto se hace UNA sola vez para conectar la carpeta instalada con GitHub:
+1. **Respaldo de seguridad:** copia tu `database.db` actual a una USB
+   (está en `%LOCALAPPDATA%\Mesana\database.db`).
+2. Ejecuta `Mesana 3.0 Setup 3.0.0.exe` → **Siguiente / Instalar**.
+3. Abre Mesana desde el nuevo acceso directo. Reutiliza automáticamente tu base de
+   datos de `%LOCALAPPDATA%\Mesana` (la misma que usaba la 2.0).
+4. Cuando confirmes que todo está bien, puedes **desinstalar la versión 2.0** vieja
+   (Panel de control → Programas, o su desinstalador). Los datos no se tocan.
 
-1. **Respaldo de seguridad:** copia la `database.db` actual a una USB.
-2. Instala **Git para Windows**: https://git-scm.com/download/win
-   (Acepta todas las opciones por defecto durante la instalación.)
-3. Copia los archivos `Conectar PC trabajo.cmd`, `Actualizar Mesana.cmd`
-   y `GUIA-ACTUALIZACION.md` a la carpeta de Mesana de la PC de trabajo
-   (vienen incluidos al conectar, pero para el primer enlace cópialos
-   manualmente desde una USB o descárgalos del repo).
-4. Doble clic en **`Conectar PC trabajo.cmd`** → escribe `SI`.
-   La primera vez te pedirá iniciar sesión en GitHub; queda guardada.
-5. Abre Mesana una vez (migra la base de datos a la carpeta de datos).
-
-A partir de ahí, actualizar = doble clic en **`Actualizar Mesana.cmd`**.
-
-> El repositorio es **privado**: al conectar y al actualizar, Git pedirá
-> tu cuenta de GitHub la primera vez (queda guardada para las siguientes).
+> **Aviso de Windows SmartScreen:** como el instalador no está firmado con un
+> certificado de pago, Windows puede mostrar *"Windows protegió tu PC"*.
+> Es normal: clic en **Más información → Ejecutar de todas formas**.
 
 ---
 
 ## Notas
 
-- `node_modules` y `runtime` (Node.js) NO están en GitHub: vienen del
-  instalador y no cambian en actualizaciones normales de código.
-- Si una actualización agrega una dependencia nueva (raro), hay que
-  reinstalar el programa completo esa vez.
-- Respaldos automáticos: el programa guarda una copia de la base cada hora
-  (últimas 30) en `%LOCALAPPDATA%\Mesana\backups`.
+- **Respaldos automáticos:** el programa guarda una copia de la base cada hora
+  (últimas 30) en `%LOCALAPPDATA%\Mesana\backups`. También puedes restaurar un
+  respaldo desde la app; al restaurar, Mesana se reinicia sola.
+- **Dónde se instala:** por usuario, en
+  `%LOCALAPPDATA%\Programs\Mesana 3.0` (no pide permisos de administrador).
+- **Desinstalar:** desde *Agregar o quitar programas* de Windows. Desinstalar el
+  programa **no borra** tus datos (viven en `%LOCALAPPDATA%\Mesana`).

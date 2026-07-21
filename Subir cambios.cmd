@@ -31,8 +31,9 @@ if errorlevel 1 (
 
 echo.
 echo ============================================
-echo   Cambios subidos. En la PC de trabajo usa
-echo   "Actualizar Mesana" para descargarlos.
+echo   Codigo subido a GitHub. Para actualizar la PC
+echo   de trabajo: usa "Crear instalador" y ejecuta
+echo   el instalador alla.
 echo ============================================
 echo.
 pause

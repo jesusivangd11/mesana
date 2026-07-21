@@ -8,6 +8,10 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 4173;
 
+// Hook opcional para reiniciar la app (lo provee Electron via start()).
+// En modo headless (node server.js) queda null y se usa process.exit.
+let onRestartRequested = null;
+
 // --- Carpeta de datos (separada del codigo) ---
 // Los datos NUNCA viven junto al codigo, para que actualizar el programa
 // no pueda borrar la base de datos ni los respaldos.
@@ -623,13 +627,33 @@ app.post('/api/backups/restore', (req, res) => {
         return res.status(500).json({ error: 'Error al copiar: ' + e.message });
       }
       res.json({ success: true, restarting: true });
-      setTimeout(() => process.exit(0), 300);
+      setTimeout(() => {
+        if (onRestartRequested) onRestartRequested();
+        else process.exit(0);
+      }, 300);
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+function start(options = {}) {
+  if (options.onRestartRequested) onRestartRequested = options.onRestartRequested;
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, '127.0.0.1', () => {
+      console.log(`Server running on http://127.0.0.1:${port}`);
+      resolve(server);
+    });
+    server.on('error', reject);
+  });
+}
+
+// Si se ejecuta directamente (node server.js) arranca en modo headless.
+if (require.main === module) {
+  start().catch((e) => {
+    console.error('No se pudo iniciar el servidor:', e.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { start };

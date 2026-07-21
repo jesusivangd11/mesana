@@ -7,6 +7,9 @@ backups/
 node_modules/
 runtime/
 
+# --- Salida del instalador de Electron (electron-builder) ---
+dist-installer/
+
 # --- Artefactos del instalador ---
 unins000.dat
 unins000.exe
