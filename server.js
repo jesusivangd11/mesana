@@ -88,7 +88,19 @@ function listBackups() {
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+// Las fotos de productos/combos y el logo viajan como data URL dentro del JSON.
+// Con el limite por defecto (100kb) las fotos pesadas se rechazaban con 413 y la
+// app lo ignoraba en silencio: se veian bien hasta reiniciar y luego desaparecian.
+app.use(bodyParser.json({ limit: '25mb' }));
+
+// Responder en JSON (no en HTML) cuando el cuerpo excede el limite, para que la
+// app pueda mostrar un mensaje entendible en vez de fallar sin aviso.
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'La imagen es demasiado grande. Elige una foto mas ligera.' });
+  }
+  next(err);
+});
 app.use(express.static(path.join(__dirname)));
 
 // Database setup
@@ -97,6 +109,9 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     console.error('Error opening database:', err.message);
   } else {
     console.log('Connected to SQLite database.');
+    // Si una escritura coincide con el respaldo horario (o con otra operacion), esperar
+    // hasta 5s y reintentar en vez de fallar de inmediato con "database is locked".
+    db.run('PRAGMA busy_timeout = 5000');
     createTables();
     try { backupDatabase(); } catch (e) { console.error('[backup] startup failed:', e.message); }
     setInterval(() => {
@@ -116,13 +131,17 @@ function createTables() {
       price REAL NOT NULL,
       cost REAL NOT NULL,
       stock INTEGER NOT NULL,
-      variants TEXT
+      variants TEXT,
+      image TEXT
     )`, () => {
-      // Add variants column to existing tables (migration)
+      // Migraciones de columnas nuevas en tablas existentes
       db.all(`PRAGMA table_info(products)`, (err, columns) => {
-        if (err) return;
+        if (err || !columns) return;
         if (!columns.some(c => c.name === 'variants')) {
           db.run(`ALTER TABLE products ADD COLUMN variants TEXT`);
+        }
+        if (!columns.some(c => c.name === 'image')) {
+          db.run(`ALTER TABLE products ADD COLUMN image TEXT`);
         }
       });
     });
@@ -130,8 +149,34 @@ function createTables() {
     // Categories table
     db.run(`CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE
-    )`);
+      name TEXT NOT NULL UNIQUE,
+      icon TEXT
+    )`, () => {
+      db.all(`PRAGMA table_info(categories)`, (err, columns) => {
+        if (err || !columns) return;
+        const seedIcons = () => {
+          db.run(`UPDATE categories SET icon = 'steak' WHERE name = 'Platos Fuertes' AND (icon IS NULL OR icon = '')`);
+          db.run(`UPDATE categories SET icon = 'drink' WHERE name = 'Bebidas' AND (icon IS NULL OR icon = '')`);
+          db.run(`UPDATE categories SET icon = 'cake'  WHERE name = 'Postres' AND (icon IS NULL OR icon = '')`);
+          db.run(`UPDATE categories SET icon = 'bowl'  WHERE name = 'Entradas' AND (icon IS NULL OR icon = '')`);
+        };
+        // Orden manual: cada categoria conserva una posicion (sort_order).
+        // Se inicializa con el id (orden de creacion) para las filas que aun no lo tengan.
+        const seedSort = () => {
+          db.run(`UPDATE categories SET sort_order = id WHERE sort_order IS NULL`);
+        };
+        if (!columns.some(c => c.name === 'icon')) {
+          db.run(`ALTER TABLE categories ADD COLUMN icon TEXT`, seedIcons);
+        } else {
+          seedIcons();
+        }
+        if (!columns.some(c => c.name === 'sort_order')) {
+          db.run(`ALTER TABLE categories ADD COLUMN sort_order INTEGER`, seedSort);
+        } else {
+          seedSort();
+        }
+      });
+    });
 
     // Combos table
     db.run(`CREATE TABLE IF NOT EXISTS combos (
@@ -139,8 +184,20 @@ function createTables() {
       name TEXT NOT NULL,
       price REAL NOT NULL,
       description TEXT,
-      items TEXT NOT NULL
-    )`);
+      items TEXT NOT NULL,
+      icon TEXT,
+      image TEXT
+    )`, () => {
+      db.all(`PRAGMA table_info(combos)`, (err, columns) => {
+        if (err || !columns) return;
+        if (!columns.some(c => c.name === 'icon')) {
+          db.run(`ALTER TABLE combos ADD COLUMN icon TEXT`);
+        }
+        if (!columns.some(c => c.name === 'image')) {
+          db.run(`ALTER TABLE combos ADD COLUMN image TEXT`);
+        }
+      });
+    });
 
     // Orders (Comandas) table
     db.run(`CREATE TABLE IF NOT EXISTS orders (
@@ -169,6 +226,13 @@ function createTables() {
       items TEXT NOT NULL,
       createdAt TEXT NOT NULL
     )`);
+
+    // Migrate parked_orders: nombre personalizado de la pestana (editable por el usuario)
+    db.all("PRAGMA table_info(parked_orders)", [], (err, cols) => {
+      if (err || !cols) return;
+      const names = cols.map(c => c.name);
+      if (!names.includes('customName')) db.run("ALTER TABLE parked_orders ADD COLUMN customName TEXT");
+    });
 
     // Sales records table
     db.run(`CREATE TABLE IF NOT EXISTS sales (
@@ -306,20 +370,38 @@ app.get('/api/products', (req, res) => {
 });
 
 app.post('/api/products', (req, res) => {
-  const { name, cat, price, cost, stock, variants } = req.body;
+  const { name, cat, price, cost, stock, variants, image } = req.body;
   const variantsJson = JSON.stringify(Array.isArray(variants) ? variants : []);
-  db.run('INSERT INTO products (name, cat, price, cost, stock, variants) VALUES (?, ?, ?, ?, ?, ?)',
-    [name, cat, price, cost, stock, variantsJson], function(err) {
+  db.run('INSERT INTO products (name, cat, price, cost, stock, variants, image) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [name, cat, price, cost, stock, variantsJson, image || null], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: this.lastID });
   });
 });
 
+// Actualizacion PARCIAL: solo se tocan las columnas que vienen en la peticion.
+// Antes se reescribia la fila completa, asi que una llamada que solo mandaba
+// { stock } (editar o cancelar comanda, ajustes de inventario) dejaba en NULL el
+// nombre, la categoria, el precio, el costo y la imagen, y borraba las variantes.
 app.put('/api/products/:id', (req, res) => {
-  const { name, cat, price, cost, stock, variants } = req.body;
-  const variantsJson = JSON.stringify(Array.isArray(variants) ? variants : []);
-  db.run('UPDATE products SET name = ?, cat = ?, price = ?, cost = ?, stock = ?, variants = ? WHERE id = ?',
-    [name, cat, price, cost, stock, variantsJson, req.params.id], function(err) {
+  const body = req.body || {};
+  const fields = [];
+  const values = [];
+  const setIf = (key, transform) => {
+    if (body[key] === undefined) return;
+    fields.push(`${key} = ?`);
+    values.push(transform ? transform(body[key]) : body[key]);
+  };
+  setIf('name');
+  setIf('cat');
+  setIf('price');
+  setIf('cost');
+  setIf('stock');
+  setIf('variants', v => JSON.stringify(Array.isArray(v) ? v : []));
+  setIf('image', v => v || null);
+  if (!fields.length) return res.json({ changes: 0 });
+  values.push(req.params.id);
+  db.run(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, values, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ changes: this.changes });
   });
@@ -385,13 +467,26 @@ app.get('/api/parked', (req, res) => {
 });
 
 app.post('/api/parked', (req, res) => {
-  const { label, type, mesa, comensales, notes, waiter, items } = req.body;
+  const { label, customName, type, mesa, comensales, notes, waiter, items } = req.body;
   const createdAt = new Date().toISOString();
-  db.run('INSERT INTO parked_orders (label, type, mesa, comensales, notes, waiter, items, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [label, type, mesa, comensales, notes, waiter, JSON.stringify(items), createdAt], function(err) {
+  db.run('INSERT INTO parked_orders (label, customName, type, mesa, comensales, notes, waiter, items, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [label, customName || null, type, mesa, comensales, notes, waiter, JSON.stringify(items), createdAt], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: this.lastID, createdAt });
   });
+});
+
+// Actualiza un ticket abierto: renombrar (customName) o guardar sus cambios (items, mesa, etc.)
+app.put('/api/parked/:id', (req, res) => {
+  const { label, customName, type, mesa, comensales, notes, waiter, items } = req.body;
+  db.run(
+    'UPDATE parked_orders SET label = ?, customName = ?, type = ?, mesa = ?, comensales = ?, notes = ?, waiter = ?, items = ? WHERE id = ?',
+    [label, customName || null, type, mesa, comensales, notes, waiter, JSON.stringify(items || []), req.params.id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ changes: this.changes });
+    }
+  );
 });
 
 app.delete('/api/parked/:id', (req, res) => {
@@ -452,23 +547,41 @@ app.delete('/api/sales/:id', (req, res) => {
 
 // Categories
 app.get('/api/categories', (req, res) => {
-  db.all('SELECT * FROM categories ORDER BY name', [], (err, rows) => {
+  db.all('SELECT * FROM categories ORDER BY COALESCE(sort_order, 999999), name', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
 app.post('/api/categories', (req, res) => {
-  const { name } = req.body;
-  db.run('INSERT INTO categories (name) VALUES (?)', [name], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
+  const { name, icon } = req.body;
+  // Nueva categoria se agrega al final del orden actual.
+  db.get('SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM categories', [], (e, row) => {
+    const next = row ? row.next : 1;
+    db.run('INSERT INTO categories (name, icon, sort_order) VALUES (?, ?, ?)', [name, icon || null, next], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+  });
+});
+
+// Guardar el orden manual de las categorias (debe ir antes de la ruta /:id).
+app.put('/api/categories/reorder', (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order debe ser un arreglo de ids' });
+  db.serialize(() => {
+    const stmt = db.prepare('UPDATE categories SET sort_order = ? WHERE id = ?');
+    order.forEach((id, i) => stmt.run(i + 1, id));
+    stmt.finalize(err => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ ok: true });
+    });
   });
 });
 
 app.put('/api/categories/:id', (req, res) => {
-  const { name } = req.body;
-  db.run('UPDATE categories SET name = ? WHERE id = ?', [name, req.params.id], function(err) {
+  const { name, icon } = req.body;
+  db.run('UPDATE categories SET name = ?, icon = ? WHERE id = ?', [name, icon || null, req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ changes: this.changes });
   });
@@ -491,18 +604,33 @@ app.get('/api/combos', (req, res) => {
 });
 
 app.post('/api/combos', (req, res) => {
-  const { name, price, description, items } = req.body;
-  db.run('INSERT INTO combos (name, price, description, items) VALUES (?, ?, ?, ?)',
-    [name, price, description, JSON.stringify(items)], function(err) {
+  const { name, price, description, items, icon, image } = req.body;
+  db.run('INSERT INTO combos (name, price, description, items, icon, image) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, price, description, JSON.stringify(items), icon || null, image || null], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: this.lastID });
   });
 });
 
+// Parcial, por el mismo motivo que en productos: nunca borrar lo que no se mando.
 app.put('/api/combos/:id', (req, res) => {
-  const { name, price, description, items } = req.body;
-  db.run('UPDATE combos SET name = ?, price = ?, description = ?, items = ? WHERE id = ?',
-    [name, price, description, JSON.stringify(items), req.params.id], function(err) {
+  const body = req.body || {};
+  const fields = [];
+  const values = [];
+  const setIf = (key, transform) => {
+    if (body[key] === undefined) return;
+    fields.push(`${key} = ?`);
+    values.push(transform ? transform(body[key]) : body[key]);
+  };
+  setIf('name');
+  setIf('price');
+  setIf('description');
+  setIf('items', v => JSON.stringify(v || []));
+  setIf('icon', v => v || null);
+  setIf('image', v => v || null);
+  if (!fields.length) return res.json({ changes: 0 });
+  values.push(req.params.id);
+  db.run(`UPDATE combos SET ${fields.join(', ')} WHERE id = ?`, values, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ changes: this.changes });
   });

@@ -13,40 +13,100 @@ const THEMES = [
 
 const MESAS = ['Mesa 1', 'Mesa 2', 'Mesa 3'];
 
-const CAT_ICONS = {
-  'Platos Fuertes': `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7a2 2 0 002 2h2a2 2 0 002-2V2"/><path d="M6 2v20"/><path d="M19 2a4 4 0 00-4 4v6a2 2 0 002 2h2"/><path d="M19 14v8"/></svg>`,
-  'Bebidas': `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11h6"/><path d="M12 11v8"/><path d="M8 22h8"/><path d="M7 11h10v-1a5 5 0 00-10 0v1z"/><path d="M19 6a2 2 0 100-4 2 2 0 000 4z"/></svg>`,
-  'Postres': `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13h12v7a1 1 0 01-1 1H7a1 1 0 01-1-1v-7z"/><path d="M6 13c0-2 1-3 3-3 1 0 2 .5 3 2 1-1.5 2-2 3-2 2 0 3 1 3 3"/><path d="M12 5l1.5 2-1.5 1L10.5 7z"/></svg>`,
-  'Entradas': `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0018 0H3z"/><path d="M5 16h14"/><path d="M14 8c0-1 1-1 1-2.5C15 4 14 3.5 14 3"/><path d="M11 8c0-1 1-1 1-2.5C12 4 11 3.5 11 3"/></svg>`,
-  'Especialidades': `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 017.4 6a5 5 0 019.2 0 4 4 0 011.4 7.87"/><path d="M6 13v5a1 1 0 001 1h10a1 1 0 001-1v-5"/></svg>`,
+// Biblioteca de iconos de linea (contenido interno del SVG, viewBox 0 0 24 24).
+// Se guarda solo el ID del icono por categoria/combo; el SVG se arma con iconSvg().
+const ICON_PATHS = {
+  utensils: `<path d="M3 2v7a2 2 0 002 2h2a2 2 0 002-2V2"/><path d="M6 2v20"/><path d="M19 2a4 4 0 00-4 4v6a2 2 0 002 2h2"/><path d="M19 14v8"/>`,
+  steak: `<path d="M7 5c3-1.5 7-1 9 1.5s1.5 6.5-1.5 8.5-7.5 2-9.5-1S4 6.5 7 5z"/><circle cx="9.5" cy="10" r="1.8"/>`,
+  drink: `<path d="M9 11h6"/><path d="M12 11v8"/><path d="M8 22h8"/><path d="M7 11h10v-1a5 5 0 00-10 0v1z"/><path d="M19 6a2 2 0 100-4 2 2 0 000 4z"/>`,
+  cake: `<path d="M6 13h12v7a1 1 0 01-1 1H7a1 1 0 01-1-1v-7z"/><path d="M6 13c0-2 1-3 3-3 1 0 2 .5 3 2 1-1.5 2-2 3-2 2 0 3 1 3 3"/><path d="M12 5l1.5 2-1.5 1L10.5 7z"/>`,
+  bowl: `<path d="M3 12a9 9 0 0018 0H3z"/><path d="M5 16h14"/><path d="M14 8c0-1 1-1 1-2.5C15 4 14 3.5 14 3"/><path d="M11 8c0-1 1-1 1-2.5C12 4 11 3.5 11 3"/>`,
+  chefhat: `<path d="M6 13.87A4 4 0 017.4 6a5 5 0 019.2 0 4 4 0 011.4 7.87"/><path d="M6 13v5a1 1 0 001 1h10a1 1 0 001-1v-5"/>`,
+  coffee: `<path d="M4 8h13v4a5 5 0 01-5 5H9a5 5 0 01-5-5V8z"/><path d="M17 9h2a2 2 0 010 4h-2"/><path d="M8 2v2M11 2v2M14 2v2"/><path d="M4 21h13"/>`,
+  beer: `<path d="M6 8h8v11a1 1 0 01-1 1H7a1 1 0 01-1-1V8z"/><path d="M14 10h2a2 2 0 012 2v2a2 2 0 01-2 2h-2"/><path d="M6 8a2.5 2.5 0 012-2.4A2.5 2.5 0 0110 4a2.5 2.5 0 012 .8A2.5 2.5 0 0114 8"/><path d="M8.5 12v4M11.5 12v4"/>`,
+  wine: `<path d="M7 3h10l-1 6a4 4 0 01-8 0L7 3z"/><path d="M12 13v5"/><path d="M8.5 21h7"/>`,
+  bottle: `<path d="M10 2h4"/><path d="M10.5 2v3l-1.2 1.6A3 3 0 008.5 9v10a1 1 0 001 1h5a1 1 0 001-1V9a3 3 0 00-.8-2L13.5 5V2"/><path d="M8.5 12h7"/>`,
+  taco: `<path d="M3 16a9 9 0 0118 0"/><path d="M3.5 16h17a3 3 0 01-3 2.5H6.5a3 3 0 01-3-2.5z"/><path d="M9 13.5l.5 2M12.5 13v2.5M16 13.5l-.5 2"/>`,
+  pizza: `<path d="M4 7l8 14 8-14a22 22 0 00-16 0z"/><path d="M4 7a22 22 0 0116 0"/><circle cx="10.5" cy="11" r="1"/><circle cx="13.5" cy="14" r="1"/>`,
+  burger: `<path d="M4 10a8 8 0 0116 0z"/><path d="M4 13.5h16"/><path d="M5 17h14a2 2 0 01-2 2H7a2 2 0 01-2-2z"/>`,
+  egg: `<path d="M12 3c-3.3 0-6 5-6 9a6 6 0 0012 0c0-4-2.7-9-6-9z"/>`,
+  fish: `<path d="M3 12c3-4 8-5 11-5s5 2 6 5c-1 3-3 5-6 5s-8-1-11-5z"/><path d="M20 8l1.5-1v10L20 16"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/>`,
+  salad: `<path d="M4 20C4 12 11 5 20 4c1 9-5 16-13 16a6 6 0 01-3-.8z"/><path d="M5 19c3-4 7-8 12-10"/>`,
+  iceCream: `<path d="M8 9a4 4 0 018 0"/><path d="M7.5 9h9l-4.5 11.5L7.5 9z"/><path d="M9.2 13h5.6M10.4 16h3.2"/>`,
+  bread: `<path d="M5 11a3 3 0 013-3h8a3 3 0 013 3c0 1.1-.9 2-2 2v6a1 1 0 01-1 1H8a1 1 0 01-1-1v-6a2 2 0 01-2-2z"/><path d="M9.5 13v4M12 13v4M14.5 13v4"/>`,
+  apple: `<path d="M12 8c-1.2-2.2-4.2-3-6-1s-1.2 6.2.8 9.2C8 18 9 20.5 12 20.5s4-2.5 5.2-4.3c2-3 2.8-7 1-9s-5-.9-6.2 1.3z"/><path d="M12 8V5a2.5 2.5 0 012.5-2.5"/>`,
+  pepper: `<path d="M6 19c7 1 12-4 12-10.5"/><path d="M14 5c.3-1.8 2.2-2.8 4-2"/>`,
+  noodles: `<path d="M4 10h16"/><path d="M5 10a7 7 0 0014 0"/><path d="M14 3l4 5M18 3l-4 5"/>`,
+  cheese: `<path d="M3 13l13-6 5 4v5a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/><path d="M3 13l18 1"/><circle cx="8" cy="15" r="1"/><circle cx="14" cy="14" r="1"/>`,
+  sandwich: `<path d="M3 9l9-4 9 4-9 4-9-4z"/><path d="M3 13l9 4 9-4"/><path d="M3 9v2M21 9v2"/>`,
+  donut: `<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M7 7.5l.5.5M16.5 8l-.5.5M8 16l.5-.5"/>`,
+  star: `<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5z"/>`,
+  fire: `<path d="M12 3c.8 3.2 3.8 4.3 3.8 8.2a3.8 3.8 0 01-7.6 0c0-1 .4-1.9 1-2.6C9.5 10 12 8.2 12 3z"/><path d="M10.8 19.5a2.6 2.6 0 002.4 0"/>`,
+  grid: `<rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/>`,
 };
 
-const DEFAULT_ICON = `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14a3.5 3.5 0 007 0"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/></svg>`;
+const DEFAULT_ICON_PATH = `<circle cx="12" cy="12" r="9"/><path d="M8.5 14a3.5 3.5 0 007 0"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/>`;
+
+// Iconos que aparecen en el selector (categorias y combos).
+const ICON_CHOICES = ['utensils','steak','drink','cake','bowl','chefhat','coffee','beer','wine','bottle','taco','pizza','burger','egg','fish','salad','iceCream','bread','apple','pepper','noodles','cheese','sandwich','donut','star','fire','grid'];
+
+function iconSvg(id, size = 18) {
+  const inner = (id && ICON_PATHS[id]) ? ICON_PATHS[id] : DEFAULT_ICON_PATH;
+  return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+
+function categoryIconId(catName) {
+  const c = (state.categories || []).find(cat => cat.name === catName);
+  return c && c.icon ? c.icon : null;
+}
+
+function categorySvg(catName, size = 18) {
+  return iconSvg(categoryIconId(catName), size);
+}
+
+// Genera el selector de iconos (cuadricula) + un input oculto con el ID elegido.
+function iconPickerHtml(selectedId, hiddenId) {
+  return `<input type="hidden" id="${hiddenId}" value="${selectedId || ''}">
+    <div class="icon-picker">
+      ${ICON_CHOICES.map(id => `<button type="button" class="icon-opt ${id === selectedId ? 'selected' : ''}" data-icon="${id}" onclick="pickIcon(this, '${hiddenId}')">${iconSvg(id, 22)}</button>`).join('')}
+    </div>`;
+}
+
+function pickIcon(btn, hiddenId) {
+  const wrap = btn.closest('.icon-picker');
+  if (wrap) wrap.querySelectorAll('.icon-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const input = document.getElementById(hiddenId);
+  if (input) input.value = btn.dataset.icon;
+}
 
 const NAVICONS = {
   pos: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path stroke-linecap="round" d="M8 21h8M12 17v4"/></svg>`,
   comandas: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4"/></svg>`,
   products: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
+  categories: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 11a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zM4 17a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"/></svg>`,
+  combos: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>`,
   inventory: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
   users: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
   dashboard: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
   finances: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
   sales: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>`,
+  reports: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V9m4 8V5m4 12v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>`,
   settings: `<svg class="ni-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>`,
 };
 
 const NAV_OWNER = [
   { sec: 'VENTAS' },
-  { id: 'pos', label: 'Punto de Venta' },
+  { id: 'pos', label: 'Inicio' },
   { id: 'comandas', label: 'Comandas', badge: true },
   { sec: 'ADMINISTRACION' },
   { id: 'products', label: 'Productos' },
   { id: 'categories', label: 'Categorías' },
   { id: 'combos', label: 'Combos' },
-  { id: 'inventory', label: 'Inventario' },
   { id: 'users', label: 'Usuarios' },
   { sec: 'FINANZAS' },
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'reports', label: 'Reportes' },
   { id: 'finances', label: 'Finanzas' },
   { id: 'sales', label: 'Ventas' },
   { sec: 'SISTEMA' },
@@ -55,13 +115,13 @@ const NAV_OWNER = [
 
 const NAV_EMP = [
   { sec: 'VENTAS' },
-  { id: 'pos', label: 'Punto de Venta' },
+  { id: 'pos', label: 'Inicio' },
   { id: 'comandas', label: 'Comandas', badge: true },
   { id: 'settings', label: 'Configuracion' },
 ];
 
 const PAGE_TITLES = {
-  pos: 'Punto de Venta',
+  pos: 'Inicio',
   comandas: 'Comandas en Espera',
   products: 'Gestion de Productos',
   categories: 'Gestión de Categorías',
@@ -69,21 +129,11 @@ const PAGE_TITLES = {
   inventory: 'Control de Inventario',
   users: 'Usuarios',
   dashboard: 'Dashboard',
+  reports: 'Reportes de Ventas',
   finances: 'Finanzas',
   sales: 'Reporte de Ventas',
   settings: 'Configuracion',
 };
-
-const MONTADO_FILLINGS = [
-  'Prensado',
-  'Chicharron en salsa verde',
-  'Discada',
-  'Chile beans',
-  'Costilla verde',
-  'Bistec',
-  'Asado',
-  'Chile pasado',
-];
 
 // ===================== STATE =====================
 let state = createDefaultState();
@@ -92,8 +142,9 @@ let currentOrder = createEmptyOrder();
 let posCategory = 'Todos';
 let productSearch = '';
 let editingComandaId = null;
-let pendingAddId = null;
-let pendingAddIsCombo = false;
+// Ticket abierto (pestana) actualmente cargado en currentOrder. null = ticket nuevo aun sin guardar.
+let activeTicketId = null;
+let ticketSaveTimer = null;
 let pendingDeleteEmail = null;
 let salesSelectedDate = '';
 let salesSelectedId = null;
@@ -201,11 +252,13 @@ function createEmptyOrder() {
     mesa: 'Mesa 1',
     comensales: 2,
     notes: '',
+    customName: '',
   };
 }
 
 function resetOrder() {
   editingComandaId = null;
+  activeTicketId = null;
   currentOrder = createEmptyOrder();
 }
 
@@ -232,6 +285,8 @@ async function loadDataFromAPI() {
     state.categories = await categoriesRes.json();
     state.combos = await combosRes.json();
     try { state.parkedOrders = parkedRes.ok ? await parkedRes.json() : []; } catch { state.parkedOrders = []; }
+    // Cargar el primer ticket abierto como activo (o uno vacio si no hay).
+    if (editingComandaId === null) loadFirstOrEmpty();
     // Check and reset daily counter if new day
     const today = new Date().toISOString().split('T')[0];
     if (state.settings.lastOrderDate !== today) {
@@ -375,18 +430,27 @@ function normalizeSalesRecords(items) {
 }
 
 function normalizeProductsInOrder(items) {
-  return (Array.isArray(items) ? items : []).map((item) => ({
-    uid: item.uid || createItemUid(),
-    id: Number(item.id),
-    name: item.name || 'Producto',
-    cat: item.cat || 'Platos Fuertes',
-    qty: Math.max(1, toInt(item.qty || 1)),
-    price: toMoney(item.price),
-    cost: toMoney(item.cost),
-    notes: item.notes || '',
-    variantLabel: item.variantLabel || '',
-    variantKey: item.variantKey || '',
-  }));
+  return (Array.isArray(items) ? items : []).map((item) => {
+    const normalized = {
+      uid: item.uid || createItemUid(),
+      id: Number(item.id),
+      name: item.name || 'Producto',
+      cat: item.cat || 'Platos Fuertes',
+      qty: Math.max(1, toInt(item.qty || 1)),
+      price: toMoney(item.price),
+      cost: toMoney(item.cost),
+      notes: item.notes || '',
+      variantLabel: item.variantLabel || '',
+      variantKey: item.variantKey || '',
+    };
+    // Conservar el ajuste manual de precio para poder resaltarlo en ventas y movimientos.
+    if (item.priceEdited) {
+      normalized.priceEdited = true;
+      normalized.originalPrice = toMoney(item.originalPrice);
+      normalized.priceNote = item.priceNote || '';
+    }
+    return normalized;
+  });
 }
 
 
@@ -499,11 +563,6 @@ function normalizeText(value) {
     .trim();
 }
 
-function isMontadoProduct(product) {
-  const normalized = normalizeText(product?.name);
-  return normalized === 'montado' || normalized.startsWith('montado ');
-}
-
 function minutesAgo(dateValue) {
   const minutes = Math.max(1, Math.floor((Date.now() - new Date(dateValue).getTime()) / 60000));
   return `${minutes} min`;
@@ -588,9 +647,9 @@ function getEditingReservedQty(productId) {
 }
 
 function getAvailableStock(productId) {
-  const product = productById(productId);
-  if (!product) return 0;
-  return product.stock + getEditingReservedQty(productId);
+  // Inventario retirado: los productos NO se controlan por existencias.
+  // Siempre estan disponibles para agregarse a un ticket, sin importar el stock.
+  return Infinity;
 }
 
 function validateOrderStock(items) {
@@ -930,9 +989,11 @@ function navigateTo(id) {
 
 function renderPage(id) {
   const content = document.getElementById('mainContent');
+  try {
   switch (id) {
     case 'pos':
       content.innerHTML = buildPOS();
+      updateScrollHint();
       break;
     case 'comandas':
       content.innerHTML = buildComandas();
@@ -954,6 +1015,9 @@ function renderPage(id) {
       break;
     case 'dashboard':
       content.innerHTML = buildDashboard();
+      break;
+    case 'reports':
+      content.innerHTML = buildReports();
       break;
     case 'finances':
       content.innerHTML = buildFinances();
@@ -993,57 +1057,112 @@ function renderPage(id) {
       content.innerHTML = buildPOS();
       break;
   }
+  } catch (err) {
+    console.error('Error al renderizar la seccion', id, err);
+    content.innerHTML = `<div style="padding:48px;text-align:center;color:var(--stone)">No se pudo cargar esta sección.</div>`;
+  }
 }
 
 function catIcon(category) {
-  return `<div class="mi-icon" style="color:var(--accent-dark)">${CAT_ICONS[category] || DEFAULT_ICON}</div>`;
+  return `<div class="mi-icon" style="color:var(--accent-dark)">${categorySvg(category)}</div>`;
 }
 
 // ===================== POS =====================
+// Contenido del encabezado del ticket (titulo, tipo, mesa, comensales).
+// Extraido para poder refrescarlo en vivo cuando cambia el tipo o la mesa.
+const SVG_COMEDOR = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7a2 2 0 002 2h2a2 2 0 002-2V2"/><path d="M6 2v20"/><path d="M19 2a4 4 0 00-4 4v6a2 2 0 002 2h2"/><path d="M19 14v8"/></svg>';
+const SVG_LLEVAR = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 8.5h13l-1 11.5a1.5 1.5 0 01-1.5 1.4H8a1.5 1.5 0 01-1.5-1.4l-1-11.5z"/><path d="M9 8.5V7a3 3 0 016 0v1.5"/></svg>';
+
+function renderOrderHeaderInner() {
+  const isEditing = editingComandaId !== null;
+  const title = isEditing ? `Editando Orden #${editingComandaId}` : `Orden #${state.settings.dailyOrderCounter + 1}`;
+  const isComedor = currentOrder.type === 'comedor';
+  const configured = currentOrder.type === 'llevar' || (isComedor && currentOrder.mesa);
+
+  // Ticket ya configurado: encabezado compacto de solo lectura. El tipo y la mesa
+  // se eligen al abrir el ticket, no se cambian a media captura (usar ✎ para corregir).
+  if (configured) {
+    return `
+      <div class="order-head-compact">
+        <span class="ohc-badge ${isComedor ? 'comedor' : 'llevar'}">
+          ${isComedor ? SVG_COMEDOR : SVG_LLEVAR}
+          ${isComedor ? esc(currentOrder.mesa) : 'Para llevar'}
+        </span>
+        ${isComedor ? `
+          <div class="ohc-pax" title="Comensales">
+            <button class="cc-btn" onclick="changeComensales(-1)">-</button>
+            <span class="cc-num" id="ccNum">${currentOrder.comensales}</span>
+            <button class="cc-btn" onclick="changeComensales(1)">+</button>
+            <span class="ohc-pax-label">pax</span>
+          </div>` : ''}
+        <span class="ohc-title">${esc(title)}</span>
+        <button class="ohc-edit" onclick="changeOrderSetup()" title="Cambiar tipo o mesa de este ticket">✎</button>
+      </div>`;
+  }
+
+  // Ticket sin configurar: aqui se elige tipo y mesa, en cualquier momento antes de enviar.
+  const orderHint = !currentOrder.type
+    ? 'Puedes capturar productos y elegir esto antes de enviar'
+    : 'Selecciona la mesa de este pedido';
+  return `
+    <div class="order-head-setup">
+    <div class="order-top">
+      <span class="order-title">${esc(title)}</span>
+    </div>
+    <div class="type-toggle type-toggle-full">
+      <button class="type-btn type-comedor ${isComedor ? 'active' : ''}" onclick="prepareOrderType('comedor')">
+        ${SVG_COMEDOR}
+        Comedor
+      </button>
+      <button class="type-btn type-llevar ${currentOrder.type === 'llevar' ? 'active' : ''}" onclick="prepareOrderType('llevar')">
+        ${SVG_LLEVAR}
+        Llevar
+      </button>
+    </div>
+    <div class="order-hint">${esc(orderHint)}</div>
+    <div id="mesaSection" style="${isComedor ? '' : 'display:none'}">
+      <div class="mesa-label">Mesa</div>
+      <div class="mesa-chips">
+        ${MESAS.map((mesa) => `<div class="mesa-chip ${currentOrder.mesa === mesa ? 'selected' : ''}" onclick="selectMesa('${mesa}')">${mesa}</div>`).join('')}
+      </div>
+    </div>
+    </div>`;
+}
+
+// Corregir tipo/mesa de un ticket ya configurado (accion deliberada desde el boton ✎).
+function changeOrderSetup() {
+  openOrderTypeModal();
+}
+
+function refreshOrderHeader() {
+  const el = document.getElementById('orderHeader');
+  if (el) el.innerHTML = renderOrderHeaderInner();
+}
+
 function buildPOS() {
   const isEditing = editingComandaId !== null;
-  if (!isEditing && !currentOrder.type) {
-    // No abrir modal automáticamente, solo mostrar el panel vacío
-  }
-  const title = isEditing ? `Editando Orden #${editingComandaId}` : `Orden #${state.settings.dailyOrderCounter + 1}`;
-  const orderHint = !currentOrder.type ? 'Selecciona tipo de orden para comenzar' : '';
   return `<div class="pos-layout">
     <div class="menu-section">
       <div class="cat-tabs" id="catTabs">
         ${['Todos', ...state.categories.map(c => c.name)].map((category) => `
-          <div class="cat-tab ${category === posCategory ? 'active' : ''}" onclick="setPosCategory('${category}')">${esc(category)}</div>
+          <div class="cat-tab ${category === posCategory ? 'active' : ''}" onclick="setPosCategory('${category}')"><span class="cat-tab-ic">${category === 'Todos' ? iconSvg('grid', 15) : categorySvg(category, 15)}</span>${esc(category)}</div>
         `).join('')}
       </div>
       <div class="menu-grid" id="menuGrid">${renderMenuItems()}</div>
     </div>
     <div class="order-panel">
-      <div class="order-header">
-        <div class="order-top">
-          <span class="order-title">${esc(title)}</span>
-          <div class="type-toggle">
-            <button class="type-btn ${currentOrder.type === 'comedor' ? 'active' : ''}" onclick="prepareOrderType('comedor')">Comedor</button>
-            <button class="type-btn ${currentOrder.type === 'llevar' ? 'active' : ''}" onclick="prepareOrderType('llevar')">Llevar</button>
-          </div>
-        </div>
-        ${orderHint ? `<div class="order-hint">${esc(orderHint)}</div>` : ''}
-        <div id="mesaSection" style="${currentOrder.type === 'comedor' ? '' : 'display:none'}">
-          <div class="mesa-label">Mesa</div>
-          <div class="mesa-chips">
-            ${MESAS.map((mesa) => `<div class="mesa-chip ${currentOrder.mesa === mesa ? 'selected' : ''}" onclick="selectMesa('${mesa}')">${mesa}</div>`).join('')}
-          </div>
-        </div>
-        <div class="comensales-row" id="comensalesRow" style="${currentOrder.type === 'comedor' ? '' : 'opacity:0.4;pointer-events:none'}">
-          <span class="com-label">Comensales</span>
-          <div class="com-ctrl">
-            <button class="cc-btn" onclick="changeComensales(-1)">-</button>
-            <span class="cc-num" id="ccNum">${currentOrder.comensales}</span>
-            <button class="cc-btn" onclick="changeComensales(1)">+</button>
-          </div>
-        </div>
+      ${renderTicketTabs()}
+      <div class="order-header" id="orderHeader">${renderOrderHeaderInner()}</div>
+      <div class="order-items-wrap">
+        <div class="order-items" id="orderItems" onscroll="updateScrollHint()">${renderOrderItems()}</div>
+        <div class="scroll-hint" id="scrollHint" onclick="scrollOrderItems()"><span>▼ hay más productos</span></div>
       </div>
-      <div class="order-items" id="orderItems">${renderOrderItems()}</div>
-      <div class="order-notes">
-        <label>Notas especiales</label>
+      <div class="order-notes ${currentOrder.notes ? 'open' : ''}" id="orderNotesBox">
+        <button class="notes-toggle" onclick="toggleOrderNotes()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+          Notas especiales
+          <span class="nt-caret">▾</span>
+        </button>
         <textarea id="orderNotes" placeholder="Sin cebolla, extra picante..." oninput="currentOrder.notes=this.value">${esc(currentOrder.notes)}</textarea>
       </div>
       <div class="order-totals" id="orderTotals">${renderTotals()}</div>
@@ -1069,23 +1188,9 @@ function buildPOS() {
             Enviar comanda a cocina
           </button>
           <div style="display:flex;gap:7px;margin-top:7px">
-            <button class="btn btn-primary" style="flex:1" onclick="openOrderTypeModal()">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-              Nuevo ticket
-            </button>
             <button class="btn btn-secondary" style="flex:1" onclick="showTicket()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4H8v4a1 1 0 001 1zm1-11V5a1 1 0 011-1h2a1 1 0 011 1v1M9 7h6M9 11h4"/></svg>
               Ticket
-            </button>
-          </div>
-          <div style="display:flex;gap:7px;margin-top:7px">
-            <button class="btn btn-secondary" style="flex:1" onclick="parkCurrentOrder()">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Pausar
-            </button>
-            <button class="btn btn-secondary" style="flex:1" onclick="openParkedModal()">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Pausados${(state.parkedOrders && state.parkedOrders.length) ? ` (${state.parkedOrders.length})` : ''}
             </button>
             <button class="btn btn-danger" style="flex:1" onclick="clearOrder()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -1099,7 +1204,7 @@ function buildPOS() {
 }
 
 function openOrderTypeModal() {
-  if (document.querySelector('.modal-overlay.open:not(#productModal)')) return;
+  if (document.querySelector('.modal-overlay.open:not([id])')) return;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `<div class="modal" style="width:480px;">
@@ -1139,38 +1244,40 @@ function openOrderTypeModal() {
 }
 
 function prepareOrderType(type) {
-  const overlay = document.querySelector('.modal-overlay.open:not(#productModal)');
-  if (overlay) overlay.remove();
+  closeCurrentModal();
   if (type === 'llevar') {
     currentOrder.type = 'llevar';
     currentOrder.mesa = 'Mostrador';
     currentOrder.comensales = 1;
     refreshOrderPanel();
-    flushPendingAdd();
     return;
   }
   currentOrder.type = 'comedor';
-  currentOrder.mesa = MESAS[0];
+  // No asignar mesa por defecto: si el usuario cierra el modal sin elegir, la mesa
+  // queda sin definir y se le volvera a pedir al agregar un producto.
+  currentOrder.mesa = null;
   currentOrder.comensales = 2;
+  refreshOrderPanel();
   openMesaSelectionModal();
 }
 
 function openMesaSelectionModal() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
-  overlay.innerHTML = `<div class="modal">
-    <div class="modal-header"><h3>Selecciona la mesa</h3></div>
-    <div class="modal-body" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+  overlay.innerHTML = `<div class="modal" style="width:440px;max-width:92vw">
+    <div class="modal-header"><h3>Selecciona la mesa</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+    <div class="modal-body" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:18px 20px">
       ${MESAS.map((mesa) => `<button class="btn btn-secondary" style="flex:1 1 120px;min-width:120px;" onclick="selectMesaAndContinue('${mesa}')">${mesa}</button>`).join('')}
     </div>
+    <div class="modal-body" style="padding:0 20px 16px;text-align:center;font-size:11.5px;color:var(--stone-light)">Puedes cerrar y elegir la mesa después; se te pedirá al agregar un producto.</div>
   </div>`;
   document.body.appendChild(overlay);
 }
 
 function selectMesaAndContinue(mesa) {
   currentOrder.mesa = mesa;
-  const overlay = document.querySelector('.modal-overlay.open:not(#productModal)');
-  if (overlay) overlay.remove();
+  closeCurrentModal();
+  refreshOrderHeader();
   openComensalesModal();
 }
 
@@ -1199,66 +1306,97 @@ function adjustPax(delta) {
 }
 
 function confirmPax() {
-  const overlay = document.querySelector('.modal-overlay.open:not(#productModal)');
-  if (overlay) overlay.remove();
+  closeCurrentModal();
   refreshOrderPanel();
-  flushPendingAdd();
 }
 
+// Cierra TODAS las ventanas emergentes flotantes (las creadas dinamicamente, que no
+// tienen id). Nunca toca los modales estaticos del HTML (que si tienen id), asi que es
+// seguro llamarla siempre. Esto evita que un overlay quede "pegado" encima bloqueando
+// la escritura y los clics de toda la aplicacion.
 function closeCurrentModal() {
-  const overlay = document.querySelector('.modal-overlay.open:not(#productModal)');
-  if (overlay) overlay.remove();
+  document.querySelectorAll('.modal-overlay:not([id])').forEach((el) => el.remove());
 }
 
-function flushPendingAdd() {
-  if (pendingAddId == null) return;
-  const id = pendingAddId;
-  const isCombo = pendingAddIsCombo;
-  pendingAddId = null;
-  pendingAddIsCombo = false;
-  if (isCombo) addComboToOrder(id);
-  else addToOrder(id);
+// Modal de confirmacion reutilizable (advertencia antes de acciones destructivas).
+function openConfirmModal({ title, message, confirmText = 'Sí, continuar', cancelText = 'Cancelar', danger = true, onConfirm }) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `<div class="modal" style="width:420px;max-width:92vw">
+    <div class="modal-header"><h3>${esc(title)}</h3></div>
+    <div class="modal-body" style="padding:18px 20px;font-size:13.5px;color:var(--stone);line-height:1.55">${esc(message)}</div>
+    <div class="modal-footer" style="display:flex;gap:10px;padding:0 20px 18px">
+      <button class="btn btn-secondary btn-full" data-role="cancel">${esc(cancelText)}</button>
+      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} btn-full" data-role="ok">${esc(confirmText)}</button>
+    </div>
+  </div>`;
+  overlay.querySelector('[data-role="cancel"]').onclick = () => overlay.remove();
+  overlay.querySelector('[data-role="ok"]').onclick = () => { overlay.remove(); if (onConfirm) onConfirm(); };
+  document.body.appendChild(overlay);
 }
+
 
 function renderMenuItems(filter) {
   const term = String(filter || '').trim().toLowerCase();
-  const products = state.products.filter((product) => {
-    const matchCat = posCategory === 'Todos' || product.cat === posCategory;
-    const matchTerm = !term || product.name.toLowerCase().includes(term);
-    return matchCat && matchTerm;
-  });
-  const combos = state.combos.filter((combo) => {
-    const matchTerm = !term || combo.name.toLowerCase().includes(term);
-    return matchTerm;
-  });
-  const items = [...products, ...combos.map(c => ({ ...c, isCombo: true }))];
-  if (!items.length) {
-    return `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--stone);font-size:13px">Sin productos</div>`;
+  const empty = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--stone);font-size:13px">Sin productos</div>`;
+
+  // Búsqueda: resultados planos (productos + combos)
+  if (term) {
+    const prods = state.products.filter(p => p.name.toLowerCase().includes(term));
+    const combos = state.combos.filter(c => c.name.toLowerCase().includes(term));
+    const cards = [...prods.map(productCardHtml), ...combos.map(comboCardHtml)];
+    return cards.length ? cards.join('') : empty;
   }
-  return items.map((item) => {
-    if (item.isCombo) {
-      return `
-        <div class="menu-item combo-item" onclick="addComboToOrder(${item.id})">
-          <div class="mi-icon" style="color:var(--accent-dark)">🍽️</div>
-          <div class="mi-name">${esc(item.name)}</div>
-          <div class="mi-price">$${fmt(item.price)} MXN</div>
-          <div class="mi-desc">${esc(item.description || 'Combo')}</div>
-        </div>
-      `;
-    } else {
-      const displayStock = getAvailableStock(item.id);
-      const outOfStock = displayStock <= 0;
-      return `
-        <div class="menu-item ${outOfStock ? 'out-of-stock' : ''}" onclick="addToOrder(${item.id})">
-          ${outOfStock ? '<span class="oos-badge">Sin stock</span>' : ''}
-          ${catIcon(item.cat)}
-          <div class="mi-name">${esc(item.name)}</div>
-          <div class="mi-price">$${fmt(item.price)} MXN</div>
-          <div class="mi-stock">Stock: ${displayStock}</div>
-        </div>
-      `;
-    }
-  }).join('');
+
+  // Categoría específica: solo sus productos
+  if (posCategory !== 'Todos') {
+    const prods = state.products.filter(p => p.cat === posCategory);
+    return prods.length ? prods.map(productCardHtml).join('') : empty;
+  }
+
+  // "Todos": separado por categoría (encabezado de ancho completo) + sección de combos
+  const head = (title, icon) => `<div class="menu-cat-head"><span class="menu-cat-ic">${icon}</span>${esc(title)}</div>`;
+  let html = '';
+  state.categories.forEach(cat => {
+    const prods = state.products.filter(p => p.cat === cat.name);
+    if (!prods.length) return;
+    html += head(cat.name, categorySvg(cat.name, 15)) + prods.map(productCardHtml).join('');
+  });
+  const knownCats = new Set(state.categories.map(c => c.name));
+  const orphans = state.products.filter(p => !knownCats.has(p.cat));
+  if (orphans.length) html += head('Otros', iconSvg('utensils', 15)) + orphans.map(productCardHtml).join('');
+  if (state.combos.length) html += head('Combos', iconSvg('grid', 15)) + state.combos.map(comboCardHtml).join('');
+  return html || empty;
+}
+
+function productCardHtml(item) {
+  const displayStock = getAvailableStock(item.id);
+  const outOfStock = displayStock <= 0;
+  const media = item.image
+    ? `<div class="mi-media"><img src="${item.image}" alt="${esc(item.name)}"></div>`
+    : `<div class="mi-media mi-media-icon">${categorySvg(item.cat, 34)}</div>`;
+  return `
+    <div class="menu-item ${outOfStock ? 'out-of-stock' : ''}" onclick="addToOrder(${item.id})">
+      ${outOfStock ? '<span class="oos-badge">Sin stock</span>' : ''}
+      ${media}
+      <div class="mi-name">${esc(item.name)}</div>
+      <div class="mi-price">$${fmt(item.price)} MXN</div>
+    </div>
+  `;
+}
+
+function comboCardHtml(combo) {
+  const media = combo.image
+    ? `<div class="mi-media"><img src="${combo.image}" alt="${esc(combo.name)}"></div>`
+    : `<div class="mi-media mi-media-icon">${iconSvg(combo.icon, 34)}</div>`;
+  return `
+    <div class="menu-item combo-item" onclick="addComboToOrder(${combo.id})">
+      ${media}
+      <div class="mi-name">${esc(combo.name)}</div>
+      <div class="mi-price">$${fmt(combo.price)} MXN</div>
+      <div class="mi-desc">${esc(combo.description || 'Combo')}</div>
+    </div>
+  `;
 }
 
 function renderOrderItems() {
@@ -1276,17 +1414,23 @@ function renderOrderItems() {
         <button class="oi-qbtn" onclick="changeQty(${index},1)">+</button>
       </div>
       <div class="oi-info">
-        <div class="oi-name">${esc(item.name)}</div>
-        <div class="oi-uprice">$${fmt(item.price)} c/u</div>
-        ${item.variantLabel ? `<div class="mi-stock" style="margin-top:3px">${esc(item.variantLabel)}</div>` : ''}
-        ${item.isCombo && item.comboItems?.length ? `<div style="font-size:11px;color:var(--stone);margin-top:3px;line-height:1.6">${item.comboItems.map(ci => `• ${ci.qty}x ${esc(ci.name || '')}${ci.variantLabel ? ` <span style="color:var(--accent-dark)">(${esc(ci.variantLabel)})</span>` : ''}`).join('<br>')}</div>` : ''}
-        ${item.notes ? `<div class="mi-stock" style="margin-top:3px;color:var(--accent-dark)">Nota: ${esc(item.notes)}</div>` : ''}
-        <div style="margin-top:5px">
-          <button class="btn btn-secondary btn-sm" onclick="openItemNotesModal(${index})">Notas</button>
+        <div class="oi-line1">
+          <span class="oi-name">${esc(item.name)}</span>
+          <span class="oi-total">$${fmt(item.price * item.qty)}</span>
         </div>
+        ${item.variantLabel ? `<div class="oi-variant">${esc(item.variantLabel)}</div>` : ''}
+        <div class="oi-meta">
+          <span class="oi-uprice">${item.priceEdited
+            ? `<s>$${fmt(item.originalPrice)}</s> <b>$${fmt(item.price)}</b> c/u`
+            : `$${fmt(item.price)} c/u`}</span>
+          <button class="oi-linkbtn" onclick="openItemNotesModal(${index})">Notas</button>
+          <button class="oi-linkbtn ${item.priceEdited ? 'edited' : ''}" onclick="openItemPriceModal(${index})">${item.priceEdited ? 'Precio ✎' : 'Precio'}</button>
+        </div>
+        ${item.priceEdited ? `<div class="oi-price-chip">${priceEditLabel(item)}</div>` : ''}
+        ${item.isCombo && item.comboItems?.length ? `<div class="oi-combo">${item.comboItems.map(ci => `• ${ci.qty}x ${esc(ci.name || '')}${ci.variantLabel ? ` (${esc(ci.variantLabel)})` : ''}`).join('<br>')}</div>` : ''}
+        ${item.notes ? `<div class="oi-note">Nota: ${esc(item.notes)}</div>` : ''}
       </div>
-      <div class="oi-total">$${fmt(item.price * item.qty)}</div>
-      <button class="oi-del" onclick="removeFromOrder(${index})">x</button>
+      <button class="oi-del" onclick="removeFromOrder(${index})">×</button>
     </div>
   `).join('');
 }
@@ -1304,7 +1448,10 @@ function setPosCategory(category) {
     tab.classList.toggle('active', tab.textContent === category);
   });
   const grid = document.getElementById('menuGrid');
-  if (grid) grid.innerHTML = renderMenuItems(document.getElementById('gSearch')?.value || '');
+  if (grid) {
+    grid.innerHTML = renderMenuItems(document.getElementById('gSearch')?.value || '');
+    grid.scrollTop = 0;
+  }
 }
 
 function setOrderType(type) {
@@ -1329,13 +1476,14 @@ function setOrderType(type) {
 
 function selectMesa(mesa) {
   currentOrder.mesa = mesa;
-  document.querySelectorAll('.mesa-chip').forEach((chip) => chip.classList.toggle('selected', chip.textContent === mesa));
+  refreshOrderPanel();
 }
 
 function changeComensales(delta) {
   currentOrder.comensales = Math.max(1, currentOrder.comensales + delta);
   const value = document.getElementById('ccNum');
   if (value) value.textContent = currentOrder.comensales;
+  persistActiveTicket();
 }
 
 function logComandaAction(description, extra) {
@@ -1355,13 +1503,26 @@ function logComandaAction(description, extra) {
   }).catch(() => {});
 }
 
-function addToOrder(id) {
+// Exige elegir primero el tipo (Comedor/Llevar) y, si es comedor, la mesa,
+// ANTES de poder agregar productos. Si falta algo, abre el modal correspondiente
+// y NO agrega el producto: el usuario configura primero y luego agrega.
+// Tipo y mesa ya NO se piden para capturar productos: frenaba la toma del pedido.
+// Se piden al enviar la comanda, que es cuando de verdad hace falta saber a donde va.
+function ensureOrderReady() {
   if (!currentOrder.type) {
-    pendingAddId = id;
-    pendingAddIsCombo = false;
+    showToast('Elige Comedor o Llevar para enviar', 'error');
     openOrderTypeModal();
-    return;
+    return false;
   }
+  if (currentOrder.type === 'comedor' && !currentOrder.mesa) {
+    showToast('Selecciona la mesa para enviar', 'error');
+    openMesaSelectionModal();
+    return false;
+  }
+  return true;
+}
+
+function addToOrder(id) {
   const product = productById(id);
   if (!product) return;
   if (getProductVariants(product).length > 0) {
@@ -1382,21 +1543,9 @@ function addToOrder(id) {
 }
 
 function addComboToOrder(id) {
-  if (!currentOrder.type) {
-    pendingAddId = id;
-    pendingAddIsCombo = true;
-    openOrderTypeModal();
-    return;
-  }
   const combo = state.combos.find(c => c.id === id);
   if (!combo) return;
-  for (const ci of combo.items) {
-    const product = productById(ci.id);
-    if (!product || product.stock < ci.qty) {
-      showToast(`Stock insuficiente para ${product?.name || 'producto en combo'}`, 'error');
-      return;
-    }
-  }
+  // Inventario retirado: ya no se valida stock de los productos del combo.
   const needsConfig = combo.items.some(ci => getProductVariants(productById(ci.id)).length > 0);
   if (needsConfig) {
     openComboConfigModal(combo);
@@ -1427,30 +1576,40 @@ function openComboConfigModal(combo) {
       <h3>Configura: ${esc(combo.name)}</h3>
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
     </div>
-    <div class="modal-body">
-      ${variantItems.map(({ ci, index, product, groups }) => `
-        <div style="margin-bottom:16px">
-          <div style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--charcoal)">
-            ${esc(product.name)}${ci.qty > 1 ? ` × ${ci.qty}` : ''}
+    <div class="modal-body combo-cfg-body">
+      ${variantItems.map(({ ci, index, product, groups }) => {
+        // Cada pieza se configura por separado: 3 montados pueden llevar guisos distintos
+        // y asi se refleja en la comanda de cocina y en el descuento de inventario.
+        const units = Math.max(1, ci.qty || 1);
+        return `
+        <div class="combo-cfg-item">
+          <div class="combo-cfg-head">
+            <span class="combo-cfg-title">${esc(product.name)}${units > 1 ? ` × ${units}` : ''}</span>
+            ${units > 1 ? `<button type="button" class="combo-cfg-copy" onclick="copyComboUnitConfig(${index},${units})">Aplicar la 1ª a todas</button>` : ''}
           </div>
-          ${groups.map((group, gi) => `
-            <div style="margin-bottom:8px">
-              <div style="font-size:11.5px;color:var(--stone);margin-bottom:6px">
-                ${esc(group.name)} — elige ${group.minSelect === group.maxSelect ? group.minSelect : `${group.minSelect}–${group.maxSelect}`}
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:5px">
-                ${group.options.map(opt => `
-                  <button type="button" class="cat-tab combo-order-opt"
-                    data-item="${index}" data-group="${gi}" data-opt="${esc(opt.name)}"
-                    onclick="toggleComboOrderOpt(${index},${gi},${group.maxSelect},this)">
-                    ${esc(opt.name)}
-                  </button>
-                `).join('')}
-              </div>
+          ${Array.from({ length: units }, (_, u) => `
+            <div class="combo-cfg-unit">
+              ${units > 1 ? `<div class="combo-cfg-unit-label">Unidad ${u + 1} de ${units}</div>` : ''}
+              ${groups.map((group, gi) => `
+                <div class="combo-cfg-group">
+                  <div class="combo-cfg-glabel">
+                    ${esc(group.name)} — elige ${group.minSelect === group.maxSelect ? group.minSelect : `${group.minSelect}–${group.maxSelect}`}
+                  </div>
+                  <div class="combo-cfg-opts">
+                    ${group.options.map(opt => `
+                      <button type="button" class="cat-tab combo-order-opt"
+                        data-item="${index}" data-unit="${u}" data-group="${gi}" data-opt="${esc(opt.name)}"
+                        onclick="toggleComboOrderOpt(${index},${u},${gi},${group.maxSelect},this)">
+                        ${esc(opt.name)}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
             </div>
           `).join('')}
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
@@ -1460,8 +1619,12 @@ function openComboConfigModal(combo) {
   document.body.appendChild(overlay);
 }
 
-function toggleComboOrderOpt(itemIndex, groupIndex, maxSelect, btn) {
-  const siblings = document.querySelectorAll(`.combo-order-opt[data-item="${itemIndex}"][data-group="${groupIndex}"]`);
+function comboUnitOpts(itemIndex, unit, groupIndex) {
+  return document.querySelectorAll(`.combo-order-opt[data-item="${itemIndex}"][data-unit="${unit}"][data-group="${groupIndex}"]`);
+}
+
+function toggleComboOrderOpt(itemIndex, unit, groupIndex, maxSelect, btn) {
+  const siblings = comboUnitOpts(itemIndex, unit, groupIndex);
   if (btn.classList.contains('active')) {
     btn.classList.remove('active');
   } else if (maxSelect === 1) {
@@ -1474,35 +1637,59 @@ function toggleComboOrderOpt(itemIndex, groupIndex, maxSelect, btn) {
   }
 }
 
+// Atajo: repetir en todas las piezas lo que se eligio en la primera.
+function copyComboUnitConfig(itemIndex, units) {
+  const first = document.querySelectorAll(`.combo-order-opt[data-item="${itemIndex}"][data-unit="0"]`);
+  const chosen = new Set([...first].filter(b => b.classList.contains('active')).map(b => `${b.dataset.group}|${b.dataset.opt}`));
+  for (let u = 1; u < units; u++) {
+    document.querySelectorAll(`.combo-order-opt[data-item="${itemIndex}"][data-unit="${u}"]`).forEach(b => {
+      b.classList.toggle('active', chosen.has(`${b.dataset.group}|${b.dataset.opt}`));
+    });
+  }
+}
+
 function confirmComboConfig(comboId) {
   const combo = state.combos.find(c => c.id === comboId);
   if (!combo) return;
   let valid = true;
-  const comboItems = combo.items.map((ci, index) => {
+  const comboItems = [];
+  combo.items.forEach((ci, index) => {
     const product = productById(ci.id);
     const groups = getProductVariants(product);
-    let variantLabel = '';
-    let variantKey = '';
-    if (groups.length) {
+    const name = ci.name || product?.name || '';
+    const units = Math.max(1, ci.qty || 1);
+    if (!groups.length) {
+      comboItems.push({ id: ci.id, qty: units, name, variantLabel: '', variantKey: '' });
+      return;
+    }
+    // Una configuracion por pieza; al final se agrupan las piezas que quedaron iguales
+    // (p.ej. "Montado x2 (Asado)" + "Montado x1 (Verde)").
+    const byKey = new Map();
+    for (let u = 0; u < units; u++) {
       const labelParts = [];
       const keyParts = [];
+      let unitOk = true;
       groups.forEach((group, gi) => {
-        const selected = [...document.querySelectorAll(`.combo-order-opt[data-item="${index}"][data-group="${gi}"].active`)].map(b => b.dataset.opt);
+        const selected = [...comboUnitOpts(index, u, gi)].filter(b => b.classList.contains('active')).map(b => b.dataset.opt);
         if (group.minSelect > 0 && selected.length < group.minSelect) {
-          showToast(`Selecciona al menos ${group.minSelect} opción de "${group.name}" para ${product.name}`, 'error');
+          if (valid) showToast(`Falta elegir "${group.name}" en ${name}${units > 1 ? ` (unidad ${u + 1})` : ''}`, 'error');
           valid = false;
+          unitOk = false;
           return;
         }
-        if (selected.length) labelParts.push(`${group.name}: ${selected.join(' + ')}`);
+        if (selected.length) labelParts.push(selected.join(' + '));
         keyParts.push(selected.slice().sort().join('|'));
       });
-      variantLabel = labelParts.join(' · ');
-      variantKey = keyParts.join('||');
+      if (!unitOk) continue;
+      const variantKey = keyParts.join('||');
+      const entry = byKey.get(variantKey);
+      if (entry) entry.qty += 1;
+      else byKey.set(variantKey, { id: ci.id, qty: 1, name, variantLabel: labelParts.join(' · '), variantKey });
     }
-    return { id: ci.id, qty: ci.qty, name: ci.name || product?.name || '', variantLabel, variantKey };
+    byKey.forEach(entry => comboItems.push(entry));
   });
   if (!valid) return;
-  document.querySelector('.modal-overlay[data-modal-type="comboConfig"]').remove();
+  document.querySelector('.modal-overlay[data-modal-type="comboConfig"]')?.remove();
   currentOrder.items.push({
     id: `combo-${combo.id}`,
     name: combo.name,
@@ -1568,31 +1755,165 @@ function saveItemNotes() {
   refreshOrderPanel();
 }
 
-function getProductVariants(product) {
-  if (Array.isArray(product?.variants) && product.variants.length > 0) return product.variants;
-  if (isMontadoProduct(product)) {
-    return [
-      {
-        name: 'Guiso',
-        minSelect: 1,
-        maxSelect: 2,
-        options: MONTADO_FILLINGS.map(filling => ({ name: filling, priceDelta: 0 })),
-      },
-    ];
+// ===================== CAMBIO DE PRECIO / DESCUENTO POR PRODUCTO =====================
+// Precio base = precio del catalogo (con variantes ya aplicadas), antes de cualquier ajuste manual.
+function itemBasePrice(item) {
+  return item.priceEdited ? toMoney(item.originalPrice) : toMoney(item.price);
+}
+
+// Etiqueta corta para un producto con precio ajustado (descuento o cambio de precio).
+function priceEditLabel(item) {
+  const base = toMoney(item.originalPrice);
+  const now = toMoney(item.price);
+  const diff = now - base;
+  const reason = item.priceNote ? ` · ${esc(item.priceNote)}` : '';
+  if (diff < 0) {
+    const pct = base > 0 ? Math.round((-diff / base) * 100) : 0;
+    return `Descuento −$${fmt(-diff)}${pct ? ` (${pct}%)` : ''}${reason}`;
   }
-  return [];
+  if (diff > 0) {
+    return `Precio +$${fmt(diff)}${reason}`;
+  }
+  return `Precio ajustado${reason}`;
+}
+
+function openItemPriceModal(index) {
+  const item = currentOrder.items[index];
+  if (!item) return;
+  const base = itemBasePrice(item);
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.dataset.modalType = 'itemPrice';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header">
+      <h3>Precio del producto</h3>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--charcoal);font-weight:600;margin-bottom:2px">${esc(item.name)}</div>
+      ${item.variantLabel ? `<div style="font-size:12px;color:var(--stone);margin-bottom:8px">${esc(item.variantLabel)}</div>` : ''}
+      <div style="font-size:12px;color:var(--stone);margin-bottom:12px">Precio de catálogo: <strong style="font-family:var(--mono);color:var(--charcoal)">$${fmt(base)}</strong></div>
+      <div class="form-group">
+        <label>Nuevo precio unitario</label>
+        <input type="number" id="itemPriceInput" min="0" step="0.5" value="${toMoney(item.price)}" oninput="updateItemPricePreview(${base})">
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyItemDiscount(${base}, 0.10)">−10%</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyItemDiscount(${base}, 0.15)">−15%</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyItemDiscount(${base}, 0.20)">−20%</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyItemDiscount(${base}, 0.50)">−50%</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyItemDiscount(${base}, 0)">Restaurar</button>
+      </div>
+      <div class="form-group">
+        <label>Motivo (opcional)</label>
+        <input type="text" id="itemPriceReason" maxlength="60" placeholder="Ej. remate, producto dañado, cortesía" value="${item.priceNote ? esc(item.priceNote) : ''}">
+      </div>
+      <div id="itemPricePreview" style="font-size:12.5px;color:var(--accent-dark);font-weight:600;min-height:18px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveItemPrice(${index})">Guardar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  updateItemPricePreview(base);
+  const input = document.getElementById('itemPriceInput');
+  input.focus();
+  input.select();
+}
+
+function applyItemDiscount(base, pct) {
+  const input = document.getElementById('itemPriceInput');
+  if (!input) return;
+  input.value = toMoney(base * (1 - pct));
+  updateItemPricePreview(base);
+}
+
+function updateItemPricePreview(base) {
+  const preview = document.getElementById('itemPricePreview');
+  const input = document.getElementById('itemPriceInput');
+  if (!preview || !input) return;
+  const now = toMoney(parseFloat(input.value) || 0);
+  const diff = now - toMoney(base);
+  if (Math.abs(diff) < 0.005) {
+    preview.textContent = 'Sin cambio (precio de catálogo)';
+    preview.style.color = 'var(--stone)';
+  } else if (diff < 0) {
+    const pct = base > 0 ? Math.round((-diff / base) * 100) : 0;
+    preview.textContent = `Descuento de $${fmt(-diff)}${pct ? ` (${pct}%)` : ''} por unidad`;
+    preview.style.color = 'var(--accent-dark)';
+  } else {
+    preview.textContent = `Aumento de $${fmt(diff)} por unidad`;
+    preview.style.color = 'var(--amber)';
+  }
+}
+
+function saveItemPrice(index) {
+  const item = currentOrder.items[index];
+  if (!item) return;
+  const base = itemBasePrice(item);
+  const input = document.getElementById('itemPriceInput');
+  let newPrice = toMoney(parseFloat(input.value));
+  if (!isFinite(newPrice) || newPrice < 0) newPrice = 0;
+  const reason = (document.getElementById('itemPriceReason')?.value || '').trim();
+  const prevPrice = item.price;
+
+  if (Math.abs(newPrice - base) < 0.005) {
+    // Volvió al precio de catálogo: quitar el ajuste.
+    item.price = base;
+    delete item.priceEdited;
+    delete item.originalPrice;
+    delete item.priceNote;
+  } else {
+    item.originalPrice = base;
+    item.price = newPrice;
+    item.priceEdited = true;
+    item.priceNote = reason;
+  }
+
+  // Registrar el cambio en movimientos si se está editando una comanda existente.
+  if (item.price !== prevPrice && editingComandaId) {
+    const desc = item.priceEdited
+      ? `cambió precio de ${item.name}: $${fmt(base)} → $${fmt(item.price)}${reason ? ` (${reason})` : ''}`
+      : `restauró precio de ${item.name} a $${fmt(base)}`;
+    logComandaAction(desc, { action: 'price', item: item.name, from: base, to: item.price, reason });
+  }
+
+  document.querySelector('.modal-overlay[data-modal-type="itemPrice"]')?.remove();
+  refreshOrderPanel();
+  showToast(item.priceEdited ? 'Precio ajustado' : 'Precio restaurado', 'success');
+}
+
+function getProductVariants(product) {
+  // Las variantes vienen SOLO de lo que el usuario configura en el producto.
+  return Array.isArray(product?.variants) ? product.variants : [];
 }
 
 function openProductConfigModal(product) {
   const groups = getProductVariants(product);
   if (groups.length === 0) return;
+  const cloned = groups.map(g => ({ ...g, options: g.options.map(o => ({ ...o })) }));
+  // Modo CANTIDADES: un solo grupo con exactamente una opcion por unidad (el caso
+  // tipico: el guisado del burrito). Ahi cada variante lleva su propia cantidad y se
+  // piden 2 de asado y 5 de prensado de una sola pasada.
+  // Con varios grupos, o si una unidad admite varias opciones, "2 de asado" ya no
+  // describe una unidad completa: se arma cada combinacion y se le pone cantidad.
+  const qtyMode = cloned.length === 1
+    && Number(cloned[0].maxSelect) === 1
+    && Number(cloned[0].minSelect) === 1;
   productConfigContext = {
     productId: product.id,
-    groups: groups.map(g => ({ ...g, options: g.options.map(o => ({ ...o })) })),
-    selections: groups.map(() => []),
+    groups: cloned,
+    qtyMode,
+    quantities: {},                   // modo cantidades: opcion -> unidades
+    selections: cloned.map(() => []), // modo combinacion: la linea que se esta armando
+    lineQty: 1,
+    lines: [],                        // modo combinacion: combinaciones ya apartadas
   };
   document.getElementById('productConfigTitle').textContent = `Configurar ${product.name}`;
-  document.getElementById('productConfigSub').textContent = 'Selecciona las opciones del producto';
+  document.getElementById('productConfigSub').textContent = qtyMode
+    ? 'Elige cuántos quieres de cada variante'
+    : 'Selecciona las opciones del producto';
   document.getElementById('productConfigNotes').value = '';
   renderProductConfigGroups();
   openModal('productConfigModal');
@@ -1605,6 +1926,28 @@ function closeProductConfigModal() {
   closeModal('productConfigModal');
 }
 
+// ----- Modo cantidades (una variante por unidad) -----
+function optionQty(name) {
+  return Number(productConfigContext?.quantities[name]) || 0;
+}
+
+function changeOptionQty(name, delta) {
+  if (!productConfigContext) return;
+  productConfigContext.quantities[name] = Math.max(0, optionQty(name) + delta);
+  renderProductConfigGroups();
+}
+
+// Al escribir no se repinta todo: se perderia el foco del recuadro.
+function setOptionQty(name, value, el) {
+  if (!productConfigContext) return;
+  const qty = Math.max(0, Math.floor(Number(value) || 0));
+  productConfigContext.quantities[name] = qty;
+  const row = el?.closest('.vc-qty-row');
+  if (row) row.classList.toggle('active', qty > 0);
+  updateProductConfigSummary();
+}
+
+// ----- Modo combinacion (varios grupos) -----
 function toggleVariantOption(groupIndex, optName) {
   if (!productConfigContext) return;
   const group = productConfigContext.groups[groupIndex];
@@ -1623,13 +1966,128 @@ function toggleVariantOption(groupIndex, optName) {
   renderProductConfigGroups();
 }
 
+function changeLineQty(delta) {
+  if (!productConfigContext) return;
+  productConfigContext.lineQty = Math.max(1, productConfigContext.lineQty + delta);
+  renderProductConfigGroups();
+}
+
+function setLineQty(value, el) {
+  if (!productConfigContext) return;
+  productConfigContext.lineQty = Math.max(1, Math.floor(Number(value) || 1));
+  updateProductConfigSummary();
+}
+
+// Aparta la combinacion que se acaba de armar y deja el formulario libre para otra.
+function addVariantLine() {
+  const ctx = productConfigContext;
+  if (!ctx) return;
+  const error = validateVariantLine(ctx.selections);
+  if (error) { showToast(error, 'error'); return; }
+  const { label } = variantLineParts(ctx.selections);
+  ctx.lines.push({ selections: ctx.selections.map(s => s.slice()), qty: ctx.lineQty, label });
+  ctx.selections = ctx.groups.map(() => []);
+  ctx.lineQty = 1;
+  renderProductConfigGroups();
+}
+
+function removeVariantLine(index) {
+  if (!productConfigContext) return;
+  productConfigContext.lines.splice(index, 1);
+  renderProductConfigGroups();
+}
+
+// ----- Comun a los dos modos -----
+// Etiqueta, clave y ajuste de precio de una combinacion de opciones.
+function variantLineParts(selections) {
+  const ctx = productConfigContext;
+  const labelParts = selections.map(sel => sel.length ? sel.join(' + ') : '').filter(Boolean);
+  const keyParts = selections.map(arr => arr.slice().sort().join('|'));
+  let delta = 0;
+  ctx.groups.forEach((group, gi) => {
+    (selections[gi] || []).forEach(name => {
+      const opt = group.options.find(o => o.name === name);
+      if (opt) delta += Number(opt.priceDelta) || 0;
+    });
+  });
+  return { label: labelParts.join(' · '), key: keyParts.join('||'), delta };
+}
+
+function validateVariantLine(selections) {
+  const ctx = productConfigContext;
+  for (let gi = 0; gi < ctx.groups.length; gi++) {
+    const group = ctx.groups[gi];
+    const sel = selections[gi] || [];
+    if (sel.length < group.minSelect) return `Selecciona al menos ${group.minSelect} en "${group.name}"`;
+    if (sel.length > group.maxSelect) return `Máximo ${group.maxSelect} en "${group.name}"`;
+  }
+  return '';
+}
+
+// Lineas que se agregarian al ticket: cada una es una combinacion con su cantidad.
+function configuredLines() {
+  const ctx = productConfigContext;
+  if (!ctx) return [];
+  if (ctx.qtyMode) {
+    return ctx.groups[0].options
+      .filter(opt => optionQty(opt.name) > 0)
+      .map(opt => ({ selections: [[opt.name]], qty: optionQty(opt.name) }));
+  }
+  const lines = ctx.lines.map(l => ({ selections: l.selections, qty: l.qty }));
+  // La combinacion en pantalla cuenta aunque no se haya apartado con el boton.
+  if (ctx.selections.some(sel => sel.length > 0) || !lines.length) {
+    lines.push({ selections: ctx.selections.map(s => s.slice()), qty: ctx.lineQty });
+  }
+  return lines;
+}
+
 function renderProductConfigGroups() {
   if (!productConfigContext) return;
   const container = document.getElementById('productConfigGroups');
   if (!container) return;
-  const fmtDelta = (d) => d === 0 ? '' : (d > 0 ? `+$${fmt(d)}` : `-$${fmt(Math.abs(d))}`);
-  container.innerHTML = productConfigContext.groups.map((group, gi) => {
-    const selected = productConfigContext.selections[gi];
+  container.innerHTML = productConfigContext.qtyMode
+    ? renderQtyModeHtml()
+    : renderComboModeHtml();
+  updateProductConfigSummary();
+}
+
+function variantDeltaText(delta) {
+  if (!delta) return '';
+  return delta > 0 ? `+$${fmt(delta)}` : `-$${fmt(Math.abs(delta))}`;
+}
+
+function renderQtyModeHtml() {
+  const group = productConfigContext.groups[0];
+  return `<div class="vc-group">
+    <div class="vc-group-head">
+      <div class="vc-group-name">${esc(group.name)}</div>
+      <div class="vc-group-rule">Pon la cantidad de cada variante</div>
+    </div>
+    <div class="vc-qty-list">
+      ${group.options.map(opt => {
+        const qty = optionQty(opt.name);
+        const delta = Number(opt.priceDelta) || 0;
+        return `<div class="vc-qty-row ${qty > 0 ? 'active' : ''}">
+          <div class="vc-qty-info">
+            <span class="vc-qty-name">${esc(opt.name)}</span>
+            ${delta !== 0 ? `<span class="vc-delta">${variantDeltaText(delta)}</span>` : ''}
+          </div>
+          <div class="vc-qty-ctrl">
+            <button type="button" class="vc-qty-btn" ${qty === 0 ? 'disabled' : ''} onclick='changeOptionQty(${jsv(opt.name)}, -1)'>−</button>
+            <input class="vc-qty-input" type="number" min="0" inputmode="numeric" value="${qty}"
+              oninput='setOptionQty(${jsv(opt.name)}, this.value, this)' onchange="renderProductConfigGroups()">
+            <button type="button" class="vc-qty-btn" onclick='changeOptionQty(${jsv(opt.name)}, 1)'>+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderComboModeHtml() {
+  const ctx = productConfigContext;
+  const groupsHtml = ctx.groups.map((group, gi) => {
+    const selected = ctx.selections[gi];
     const rule = group.minSelect === group.maxSelect
       ? `Elige ${group.maxSelect}`
       : `Elige entre ${group.minSelect} y ${group.maxSelect}`;
@@ -1641,35 +2099,61 @@ function renderProductConfigGroups() {
       <div class="vc-options">
         ${group.options.map(opt => {
           const isSel = selected.includes(opt.name);
+          const delta = Number(opt.priceDelta) || 0;
           return `<button type="button" class="vc-option ${isSel ? 'selected' : ''}" onclick='toggleVariantOption(${gi}, ${jsv(opt.name)})'>
             <span>${esc(opt.name)}</span>
-            ${opt.priceDelta !== 0 ? `<span class="vc-delta">${fmtDelta(opt.priceDelta)}</span>` : ''}
+            ${delta !== 0 ? `<span class="vc-delta">${variantDeltaText(delta)}</span>` : ''}
           </button>`;
         }).join('')}
       </div>
     </div>`;
   }).join('');
 
-  // summary
-  const summaryParts = productConfigContext.groups.map((group, gi) => {
-    const sel = productConfigContext.selections[gi];
-    return sel.length ? `${group.name}: ${sel.join(', ')}` : `${group.name}: pendiente`;
-  });
-  const totalDelta = computeVariantDelta(productConfigContext);
-  const deltaText = totalDelta !== 0 ? ` · Ajuste: ${totalDelta > 0 ? '+' : '-'}$${fmt(Math.abs(totalDelta))}` : '';
-  document.getElementById('productConfigSummary').textContent = summaryParts.join(' · ') + deltaText;
+  const linesHtml = ctx.lines.length ? `<div class="vc-lines">
+    <div class="vc-lines-title">Variantes apartadas</div>
+    ${ctx.lines.map((line, i) => `<div class="vc-line">
+      <span class="vc-line-qty">${line.qty}×</span>
+      <span class="vc-line-label">${esc(line.label || 'Sin opciones')}</span>
+      <button type="button" class="vc-line-del" onclick="removeVariantLine(${i})" title="Quitar">×</button>
+    </div>`).join('')}
+  </div>` : '';
+
+  return groupsHtml + `<div class="vc-addline">
+    <div class="vc-qty-ctrl">
+      <span class="vc-qty-label">Cantidad</span>
+      <button type="button" class="vc-qty-btn" ${ctx.lineQty <= 1 ? 'disabled' : ''} onclick="changeLineQty(-1)">−</button>
+      <input class="vc-qty-input" type="number" min="1" inputmode="numeric" value="${ctx.lineQty}"
+        oninput="setLineQty(this.value, this)" onchange="renderProductConfigGroups()">
+      <button type="button" class="vc-qty-btn" onclick="changeLineQty(1)">+</button>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addVariantLine()">+ Agregar otra variante</button>
+  </div>` + linesHtml;
 }
 
-function computeVariantDelta(ctx) {
-  let delta = 0;
-  ctx.groups.forEach((group, gi) => {
-    const selected = ctx.selections[gi];
-    selected.forEach(name => {
-      const opt = group.options.find(o => o.name === name);
-      if (opt) delta += Number(opt.priceDelta) || 0;
-    });
+function updateProductConfigSummary() {
+  const ctx = productConfigContext;
+  const box = document.getElementById('productConfigSummary');
+  const btn = document.getElementById('productConfigAddBtn');
+  if (!ctx || !box) return;
+  const product = productById(ctx.productId);
+  const lines = configuredLines().filter(l => l.qty > 0 && !validateVariantLine(l.selections));
+  const total = lines.reduce((sum, l) => sum + l.qty, 0);
+  if (!total) {
+    box.textContent = ctx.qtyMode
+      ? 'Aún no eliges cantidades'
+      : 'Selecciona las opciones del producto';
+    if (btn) btn.textContent = 'Agregar al ticket';
+    return;
+  }
+  const base = product ? toMoney(product.price) : 0;
+  let importe = 0;
+  const partes = lines.map(line => {
+    const { label, delta } = variantLineParts(line.selections);
+    importe += (base + delta) * line.qty;
+    return `${line.qty}× ${label || 'sin variante'}`;
   });
-  return delta;
+  box.textContent = `${partes.join('  ·  ')}  —  ${total} ${total === 1 ? 'unidad' : 'unidades'} · $${fmt(toMoney(importe))}`;
+  if (btn) btn.textContent = total === 1 ? 'Agregar al ticket' : `Agregar ${total} al ticket`;
 }
 
 function saveConfiguredProduct() {
@@ -1677,62 +2161,118 @@ function saveConfiguredProduct() {
   const product = productById(productConfigContext.productId);
   if (!product) return;
 
-  for (let gi = 0; gi < productConfigContext.groups.length; gi++) {
-    const group = productConfigContext.groups[gi];
-    const sel = productConfigContext.selections[gi];
-    if (sel.length < group.minSelect) {
-      showToast(`Selecciona al menos ${group.minSelect} en "${group.name}"`, 'error');
-      return;
-    }
-    if (sel.length > group.maxSelect) {
-      showToast(`Máximo ${group.maxSelect} en "${group.name}"`, 'error');
-      return;
-    }
+  const lines = configuredLines().filter(line => line.qty > 0);
+  if (!lines.length) {
+    showToast(productConfigContext.qtyMode
+      ? 'Pon la cantidad de al menos una variante'
+      : 'Selecciona las opciones del producto', 'error');
+    return;
+  }
+  for (const line of lines) {
+    const error = validateVariantLine(line.selections);
+    if (error) { showToast(error, 'error'); return; }
   }
 
   const notes = document.getElementById('productConfigNotes').value.trim();
-  const labelParts = productConfigContext.groups.map((g, gi) => {
-    const sel = productConfigContext.selections[gi];
-    return sel.length ? `${g.name}: ${sel.join(' + ')}` : '';
-  }).filter(Boolean);
-  const variantLabel = labelParts.join(' · ');
-  const keyParts = productConfigContext.selections.map(arr => arr.slice().sort().join('|'));
-  const variantKey = keyParts.join('||');
-  const delta = computeVariantDelta(productConfigContext);
+  lines.forEach(line => {
+    const { label, key, delta } = variantLineParts(line.selections);
+    // Las unidades iguales se juntan en una sola linea del ticket, igual que antes.
+    const existing = currentOrder.items.find((item) => item.id === product.id && item.variantKey === key && item.notes === notes);
+    if (existing) {
+      existing.qty += line.qty;
+    } else {
+      const item = createOrderItemSnapshot(product, line.qty);
+      item.price = toMoney(item.price + delta);
+      item.variantLabel = label;
+      item.variantKey = key;
+      item.notes = notes;
+      currentOrder.items.push(item);
+    }
+  });
 
-  const existing = currentOrder.items.find((item) => item.id === product.id && item.variantKey === variantKey && item.notes === notes);
-  const nextQty = existing ? existing.qty + 1 : 1;
-  const available = getAvailableStock(product.id);
-  if (nextQty > available) {
-    showToast(`Stock insuficiente para ${product.name}`, 'error');
-    return;
-  }
-  if (existing) {
-    existing.qty = nextQty;
-  } else {
-    const item = createOrderItemSnapshot(product, 1);
-    item.price = toMoney(item.price + delta);
-    item.variantLabel = variantLabel;
-    item.variantKey = variantKey;
-    item.notes = notes;
-    currentOrder.items.push(item);
-  }
+  const total = lines.reduce((sum, line) => sum + line.qty, 0);
   closeProductConfigModal();
   refreshOrderPanel();
+  if (total > 1) showToast(`${total} × ${product.name} agregados`, 'success');
 }
-
 function refreshOrderPanel() {
   const orderItems = document.getElementById('orderItems');
   if (orderItems) orderItems.innerHTML = renderOrderItems();
   const totals = document.getElementById('orderTotals');
   if (totals) totals.innerHTML = renderTotals();
-  const grid = document.getElementById('menuGrid');
-  if (grid) grid.innerHTML = renderMenuItems(document.getElementById('gSearch')?.value || '');
+  updateMenuStock();
+  refreshOrderHeader();
   const notes = document.getElementById('orderNotes');
   if (notes && notes.value !== currentOrder.notes) notes.value = currentOrder.notes;
+  refreshTicketTabs();
+  updateScrollHint();
+  persistActiveTicket();
+}
+
+// Actualiza el stock mostrado en el menu sin reconstruir el grid (evita recargar imagenes / parpadeo).
+function updateMenuStock() {
+  const grid = document.getElementById('menuGrid');
+  if (!grid) return;
+  state.products.forEach((p) => {
+    const card = grid.querySelector(`.menu-item[onclick="addToOrder(${p.id})"]`);
+    if (!card) return;
+    const avail = getAvailableStock(p.id);
+    const stockEl = card.querySelector('.mi-stock');
+    if (stockEl) stockEl.textContent = `Stock: ${avail}`;
+    const out = avail <= 0;
+    card.classList.toggle('out-of-stock', out);
+    let badge = card.querySelector('.oos-badge');
+    if (out && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'oos-badge';
+      badge.textContent = 'Sin stock';
+      card.insertBefore(badge, card.firstChild);
+    } else if (!out && badge) {
+      badge.remove();
+    }
+  });
+}
+
+// Muestra la senal de "hay mas productos abajo" cuando la lista se puede desplazar.
+// Sin productos nunca se muestra (el estado vacio no es contenido desplazable).
+function updateScrollHint() {
+  const el = document.getElementById('orderItems');
+  const hint = document.getElementById('scrollHint');
+  if (!el || !hint) return;
+  const moreBelow = currentOrder.items.length > 0
+    && (el.scrollHeight - el.clientHeight - el.scrollTop) > 8;
+  hint.classList.toggle('show', moreBelow);
+}
+
+// Las notas ocupan espacio que casi siempre se prefiere para los productos:
+// se muestran plegadas y se abren solo cuando hacen falta.
+function toggleOrderNotes() {
+  const box = document.getElementById('orderNotesBox');
+  if (!box) return;
+  const opening = !box.classList.contains('open');
+  box.classList.toggle('open', opening);
+  if (opening) document.getElementById('orderNotes')?.focus();
+  updateScrollHint();
+}
+
+function scrollOrderItems() {
+  const el = document.getElementById('orderItems');
+  if (el) el.scrollBy({ top: Math.max(160, el.clientHeight * 0.7), behavior: 'smooth' });
 }
 
 function clearOrder() {
+  // Vaciar sin productos no requiere confirmacion.
+  if (!currentOrder.items.length) { doClearOrder(); return; }
+  openConfirmModal({
+    title: 'Limpiar ticket',
+    message: '¿Seguro que quieres vaciar este ticket? Se quitarán todos los productos y no se puede deshacer.',
+    confirmText: 'Sí, limpiar',
+    danger: true,
+    onConfirm: doClearOrder,
+  });
+}
+
+function doClearOrder() {
   const keepEditContext = editingComandaId !== null;
   currentOrder = createEmptyOrder();
   if (keepEditContext) {
@@ -1743,22 +2283,86 @@ function clearOrder() {
   refreshOrderPanel();
 }
 
-// ===================== TICKETS PAUSADOS =====================
-async function parkCurrentOrder() {
-  if (!currentOrder.items.length) {
-    showToast('No hay productos para pausar', 'error');
-    return;
-  }
-  const label = currentOrder.type === 'llevar' ? 'Para llevar' : (currentOrder.mesa || 'Sin mesa');
-  const payload = {
-    label,
-    type: currentOrder.type || 'comedor',
-    mesa: currentOrder.mesa || '',
-    comensales: currentOrder.comensales || 1,
-    notes: currentOrder.notes || '',
-    waiter: currentUser.name,
-    items: currentOrder.items.map((item) => ({ ...item })),
+// ===================== TICKETS ABIERTOS (barra estilo Eleventa) =====================
+// state.parkedOrders = todos los tickets abiertos persistidos. El ticket activo
+// vive en currentOrder + activeTicketId (null = ticket nuevo aun sin guardar).
+
+// Etiqueta automatica de una orden segun tipo/mesa.
+function autoTicketLabel(order) {
+  if (!order || !order.type) return 'Nuevo';
+  return order.type === 'llevar' ? 'Llevar' : (order.mesa || 'Mesa');
+}
+
+// Etiqueta a mostrar en la pestana: nombre personalizado o la automatica.
+function ticketTabLabel(t) {
+  return (t && t.customName && t.customName.trim()) ? t.customName.trim() : autoTicketLabel(t);
+}
+
+// Payload comun para POST/PUT de un ticket abierto.
+function ticketPayload(o) {
+  return {
+    label: autoTicketLabel(o),
+    customName: (o.customName && o.customName.trim()) || null,
+    type: o.type || 'comedor',
+    mesa: o.mesa || '',
+    comensales: o.comensales || 1,
+    notes: o.notes || '',
+    waiter: (currentUser && currentUser.name) || '',
+    items: (o.items || []).map((item) => ({ ...item })),
   };
+}
+
+// Renderiza la barra de pestanas de tickets abiertos.
+function renderTicketTabs() {
+  return `<div class="ticket-tabs" id="ticketTabs">${renderTicketTabsInner()}</div>`;
+}
+
+// Contenido interno de la barra (se actualiza sin reemplazar el contenedor, evita parpadeo).
+function renderTicketTabsInner() {
+  // Al editar una comanda existente no se muestran las pestanas.
+  if (editingComandaId !== null) return '';
+  const tabs = state.parkedOrders.map((t) => {
+    const isActive = t.id === activeTicketId;
+    const src = isActive ? currentOrder : t;
+    const count = (src.items || []).reduce((s, i) => s + (i.qty || 0), 0);
+    return ticketTabHtml(t.id, ticketTabLabel(src), count, isActive);
+  });
+  if (activeTicketId == null) {
+    const count = currentOrder.items.reduce((s, i) => s + (i.qty || 0), 0);
+    tabs.push(ticketTabHtml('new', ticketTabLabel(currentOrder), count, true));
+  }
+  return `${tabs.join('')}<button class="ticket-tab-add" onclick="newTicket()" title="Nuevo ticket">+</button>`;
+}
+
+function ticketTabHtml(id, label, count, active) {
+  const key = id === 'new' ? 'new' : id;
+  const arg = id === 'new' ? 'null' : id;
+  return `<div class="ticket-tab ${active ? 'active' : ''}" data-id="${key}" onclick="switchTicket(${arg})" ondblclick="renameTicket(${arg})" title="Doble clic para renombrar">
+    <span class="tt-label">${esc(label)}</span>
+    ${id !== 'new' ? `<span class="tt-close" onclick="event.stopPropagation();closeTicketTab(${id})" title="Cerrar ticket">×</span>` : ''}
+  </div>`;
+}
+
+function refreshTicketTabs() {
+  const el = document.getElementById('ticketTabs');
+  if (el) el.innerHTML = renderTicketTabsInner();
+}
+
+// Copia los datos vivos de currentOrder a su entrada en state.parkedOrders.
+function syncActiveTicketEntry() {
+  if (activeTicketId == null) return;
+  const e = state.parkedOrders.find((t) => t.id === activeTicketId);
+  if (!e) return;
+  e.type = currentOrder.type;
+  e.mesa = currentOrder.mesa;
+  e.comensales = currentOrder.comensales;
+  e.notes = currentOrder.notes;
+  e.customName = (currentOrder.customName && currentOrder.customName.trim()) || null;
+  e.items = currentOrder.items.map((i) => ({ ...i }));
+}
+
+async function postActiveTicket() {
+  const payload = ticketPayload(currentOrder);
   try {
     const res = await fetch('/api/parked', {
       method: 'POST',
@@ -1766,93 +2370,197 @@ async function parkCurrentOrder() {
       body: JSON.stringify(payload),
     });
     const { id, createdAt } = await res.json();
-    if (!state.parkedOrders) state.parkedOrders = [];
-    state.parkedOrders.push({ id, createdAt, ...payload });
-    resetOrder();
-    refreshOrderPanel();
-    showToast('Ticket pausado', 'success');
+    const entry = { id, createdAt, ...payload };
+    state.parkedOrders.push(entry);
+    activeTicketId = id;
+    return entry;
   } catch (error) {
-    console.error('Error al pausar ticket:', error);
-    showToast('Error al pausar el ticket', 'error');
+    console.error('Error al guardar ticket:', error);
   }
 }
 
-function openParkedModal() {
-  document.getElementById('parkedModal')?.remove();
-  const list = state.parkedOrders || [];
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay open';
-  overlay.id = 'parkedModal';
-  const body = list.length
-    ? list.map((p) => {
-        const items = Array.isArray(p.items) ? p.items : [];
-        const count = items.reduce((s, i) => s + (i.qty || 0), 0);
-        const preview = items.slice(0, 3).map((i) => `${i.qty}x ${esc(i.name)}`).join(', ');
-        const more = items.length > 3 ? '…' : '';
-        return `<div class="card" style="padding:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px">
-          <div style="min-width:0">
-            <div style="font-weight:700;font-size:13px;color:var(--charcoal)">${esc(p.label || 'Ticket')} · <span style="color:var(--stone);font-weight:500">${count} art.</span></div>
-            <div style="font-size:11.5px;color:var(--stone);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">${preview}${more}</div>
-            <div style="font-size:10.5px;color:var(--stone);margin-top:2px">Pausado hace ${minutesAgo(p.createdAt)} · ${esc(p.waiter || '')}</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <button class="btn btn-primary btn-sm" onclick="resumeParkedOrder(${p.id})">Retomar</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteParkedOrder(${p.id})">Eliminar</button>
-          </div>
-        </div>`;
-      }).join('')
-    : `<div style="text-align:center;padding:30px 20px;color:var(--stone);font-size:13px">No hay tickets pausados</div>`;
-  overlay.innerHTML = `<div class="modal" style="width:520px;max-width:94vw">
-    <div class="modal-header"><h3>Tickets pausados</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>
-    <div class="modal-body" style="padding:18px;max-height:62vh;overflow-y:auto">${body}</div>
-  </div>`;
-  document.body.appendChild(overlay);
+async function putTicket(entry) {
+  try {
+    await fetch(`/api/parked/${entry.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ticketPayload(entry)),
+    });
+  } catch (error) {
+    console.error('Error al actualizar ticket:', error);
+  }
 }
 
-async function resumeParkedOrder(id) {
-  const list = state.parkedOrders || [];
-  const parked = list.find((p) => p.id === id);
-  if (!parked) return;
-  // Si hay una orden en curso con productos, pausarla primero para no perderla.
-  if (currentOrder.items.length) {
-    await parkCurrentOrder();
+// Autoguardado del ticket activo (con debounce). immediate=true guarda al instante.
+function persistActiveTicket(immediate) {
+  if (editingComandaId !== null) return;
+  if (ticketSaveTimer) { clearTimeout(ticketSaveTimer); ticketSaveTimer = null; }
+  const run = async () => {
+    ticketSaveTimer = null;
+    if (activeTicketId != null) {
+      syncActiveTicketEntry();
+      const e = state.parkedOrders.find((t) => t.id === activeTicketId);
+      if (e) await putTicket(e);
+    } else if (currentOrder.items.length) {
+      await postActiveTicket();
+      refreshTicketTabs();
+    }
+  };
+  if (immediate) return run();
+  ticketSaveTimer = setTimeout(run, 600);
+}
+
+// Guarda el ticket activo antes de cambiar de pestana o crear otro.
+async function commitActiveTicket() {
+  if (ticketSaveTimer) { clearTimeout(ticketSaveTimer); ticketSaveTimer = null; }
+  if (editingComandaId !== null) return;
+  if (activeTicketId != null) {
+    syncActiveTicketEntry();
+    const e = state.parkedOrders.find((t) => t.id === activeTicketId);
+    if (e) await putTicket(e);
+  } else if (currentOrder.items.length) {
+    await postActiveTicket();
   }
-  // Quitar el retomado de pausados (backend + memoria)
-  try { await fetch(`/api/parked/${id}`, { method: 'DELETE' }); } catch {}
-  const fresh = state.parkedOrders || [];
-  const fi = fresh.findIndex((p) => p.id === id);
-  if (fi !== -1) fresh.splice(fi, 1);
-  // Cargar a la orden actual
+}
+
+// Carga una entrada de ticket a currentOrder.
+function loadTicketEntry(entry) {
   editingComandaId = null;
   currentOrder = {
-    items: (parked.items || []).map((item) => ({ ...item })),
-    type: parked.type || 'comedor',
-    mesa: parked.mesa || 'Mesa 1',
-    comensales: parked.comensales || 2,
-    notes: parked.notes || '',
+    items: (entry.items || []).map((item) => ({ ...item })),
+    type: entry.type || 'comedor',
+    mesa: entry.mesa || 'Mesa 1',
+    comensales: entry.comensales || 2,
+    notes: entry.notes || '',
+    customName: entry.customName || '',
   };
-  document.getElementById('parkedModal')?.remove();
-  navigateTo('pos');
-  showToast('Ticket retomado', 'success');
+  activeTicketId = entry.id;
 }
 
-async function deleteParkedOrder(id) {
-  try { await fetch(`/api/parked/${id}`, { method: 'DELETE' }); } catch {}
-  const list = state.parkedOrders || [];
-  const idx = list.findIndex((p) => p.id === id);
-  if (idx !== -1) list.splice(idx, 1);
-  openParkedModal();
+// Carga el primer ticket abierto disponible, o uno vacio si no hay.
+function loadFirstOrEmpty() {
+  const next = state.parkedOrders[0];
+  if (next) loadTicketEntry(next);
+  else { editingComandaId = null; currentOrder = createEmptyOrder(); activeTicketId = null; }
+}
+
+// Cambia a otra pestana de ticket.
+async function switchTicket(id) {
+  if (id == null || id === activeTicketId) return;
+  await commitActiveTicket();
+  const entry = state.parkedOrders.find((t) => t.id === id);
+  if (!entry) { refreshOrderPanel(); return; }
+  loadTicketEntry(entry);
+  refreshOrderPanel();
+}
+
+// Crea un ticket nuevo (vacio) y lo hace activo.
+async function newTicket() {
+  // Evita abrir varios tickets vacios: primero hay que ponerle productos al actual.
+  if (!currentOrder.items.length) {
+    showToast('Agrega productos a este ticket antes de abrir otro', 'error');
+    return;
+  }
+  await commitActiveTicket();
+  editingComandaId = null;
+  currentOrder = createEmptyOrder();
+  activeTicketId = null;
+  refreshOrderPanel();
+  // Orden estricto: pedir Comedor/Llevar (y mesa) antes de agregar productos.
+  openOrderTypeModal();
+}
+
+// Cierra/descarta un ticket abierto por completo (boton × de la pestana).
+function closeTicketTab(id) {
+  const isActive = id === activeTicketId;
+  const entry = state.parkedOrders.find((t) => t.id === id);
+  const count = isActive
+    ? currentOrder.items.reduce((s, i) => s + (i.qty || 0), 0)
+    : ((entry && entry.items) || []).reduce((s, i) => s + (i.qty || 0), 0);
+  const doClose = async () => {
+    try { await fetch(`/api/parked/${id}`, { method: 'DELETE' }); } catch {}
+    const idx = state.parkedOrders.findIndex((t) => t.id === id);
+    if (idx !== -1) state.parkedOrders.splice(idx, 1);
+    if (isActive) loadFirstOrEmpty();
+    refreshOrderPanel();
+  };
+  if (count) {
+    openConfirmModal({
+      title: 'Cerrar ticket',
+      message: 'Este ticket tiene productos. ¿Cerrarlo y descartar todo lo que lleva?',
+      confirmText: 'Sí, cerrar',
+      danger: true,
+      onConfirm: doClose,
+    });
+  } else {
+    doClose();
+  }
+}
+
+// Cierra el ticket activo tras enviarlo a cocina (ya dejo de estar abierto).
+async function closeActiveTicket() {
+  if (ticketSaveTimer) { clearTimeout(ticketSaveTimer); ticketSaveTimer = null; }
+  if (activeTicketId != null) {
+    try { await fetch(`/api/parked/${activeTicketId}`, { method: 'DELETE' }); } catch {}
+    const idx = state.parkedOrders.findIndex((t) => t.id === activeTicketId);
+    if (idx !== -1) state.parkedOrders.splice(idx, 1);
+  }
+  loadFirstOrEmpty();
+}
+
+// Renombra una pestana con un input inline.
+function renameTicket(id) {
+  if (editingComandaId !== null) return;
+  const tabsEl = document.getElementById('ticketTabs');
+  if (!tabsEl) return;
+  const key = (id == null) ? 'new' : String(id);
+  const tab = tabsEl.querySelector(`.ticket-tab[data-id="${key}"]`);
+  if (!tab) return;
+  const isActiveTicket = (id == null) || (id === activeTicketId);
+  const currentName = isActiveTicket
+    ? (currentOrder.customName || autoTicketLabel(currentOrder))
+    : (() => { const e = state.parkedOrders.find((t) => t.id === id); return e ? ticketTabLabel(e) : ''; })();
+  const input = document.createElement('input');
+  input.className = 'ticket-tab-input';
+  input.value = currentName;
+  input.maxLength = 24;
+  tab.innerHTML = '';
+  tab.appendChild(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const cancel = () => { if (done) return; done = true; refreshTicketTabs(); };
+  const commit = () => {
+    if (done) return; done = true;
+    applyTicketName(id, input.value.trim());
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+function applyTicketName(id, name) {
+  const clean = name || '';
+  if (id == null || id === activeTicketId) {
+    currentOrder.customName = clean;
+    if (activeTicketId != null) { syncActiveTicketEntry(); persistActiveTicket(true); }
+    else if (currentOrder.items.length) { persistActiveTicket(true); }
+  } else {
+    const e = state.parkedOrders.find((t) => t.id === id);
+    if (e) { e.customName = clean || null; putTicket(e); }
+  }
+  refreshTicketTabs();
 }
 
 async function sendComanda() {
-  if (!currentOrder.type) {
-    openOrderTypeModal();
-    return;
-  }
   if (!currentOrder.items.length) {
     showToast('Agrega productos a la orden', 'error');
     return;
   }
+  // Aqui si es obligatorio saber si es comedor (y que mesa) o para llevar.
+  if (!ensureOrderReady()) return;
   const validation = validateOrderStock(currentOrder.items);
   if (!validation.ok) {
     showToast(validation.message, 'error');
@@ -1913,7 +2621,7 @@ async function sendComanda() {
       })
     });
     showToast(`Comanda #${ticketNumber} enviada a cocina`, 'success');
-    resetOrder();
+    await closeActiveTicket();
     refreshOrderPanel();
     updateBadge();
   } catch (error) {
@@ -2022,7 +2730,7 @@ function showTicket() {
       ${rfc ? `<div class="t-sub">RFC ${rfc}</div>` : ''}
       <div class="t-sub">${formatShortDate(now)} · ${formatShortTime(now)}</div>
       <div class="t-div"></div>
-      <div class="t-row"><span>${currentOrder.type === 'llevar' ? 'PARA LLEVAR' : `COMEDOR - ${esc(currentOrder.mesa)}`}</span><span>${currentOrder.type === 'llevar' ? 1 : currentOrder.comensales} pax</span></div>
+      <div class="t-row"><span>${currentOrder.type === 'llevar' ? 'PARA LLEVAR' : (currentOrder.mesa ? `COMEDOR - ${esc(currentOrder.mesa)}` : 'COMEDOR')}</span><span>${currentOrder.type === 'llevar' ? 1 : currentOrder.comensales} pax</span></div>
       <div class="t-div"></div>
       ${currentOrder.items.map((item) => `
         <div class="t-row"><span>${item.qty}x ${esc(item.name)}</span><span>$${fmt(item.price * item.qty)}</span></div>
@@ -2073,7 +2781,7 @@ function buildComandas() {
             ${comanda.items.map((item) => `
               <div style="padding:2px 0;font-size:12.5px">
                 <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;color:var(--accent-dark);font-family:var(--mono);min-width:18px">${item.qty}x</span>${esc(item.name)}</div>
-                ${item.variantLabel ? `<div style="font-size:11px;color:var(--stone);margin-left:26px">${esc(item.variantLabel)}</div>` : ''}
+                ${item.variantLabel ? `<div style="font-size:12px;font-weight:700;color:#4A4843;margin-left:26px">${esc(item.variantLabel)}</div>` : ''}
                 ${item.isCombo && item.comboItems?.length ? `<div style="font-size:11px;color:var(--stone);margin-left:26px;line-height:1.7">${item.comboItems.map(ci => `• ${ci.qty}x ${esc(ci.name || '')}${ci.variantLabel ? ` (${esc(ci.variantLabel)})` : ''}`).join('<br>')}</div>` : ''}
                 ${item.notes ? `<div style="font-size:11px;color:var(--accent-dark);margin-left:26px">Nota: ${esc(item.notes)}</div>` : ''}
               </div>
@@ -2098,12 +2806,14 @@ function editComanda(id) {
   const comanda = state.commandas.find((entry) => entry.id === id);
   if (!comanda) return;
   editingComandaId = comanda.ticketNumber;
+  activeTicketId = null;
   currentOrder = {
     items: comanda.items.map((item) => ({ ...item })),
     type: comanda.type,
     mesa: comanda.type === 'llevar' ? 'Mostrador' : comanda.mesa,
     comensales: comanda.comensales,
     notes: comanda.notes,
+    customName: '',
   };
   navigateTo('pos');
 }
@@ -2399,17 +3109,15 @@ function buildProducts() {
     </div>
     ${filtered.length === 0 ? `<div style="text-align:center;padding:50px;color:var(--stone)"><p style="font-size:14px;font-weight:600">No hay productos aun</p><p style="font-size:13px;margin-top:4px">Agrega el primero con el boton de arriba</p></div>` : `
     <table class="data-table">
-      <thead><tr><th>Nombre</th><th>Categoria</th><th>Precio MXN</th><th>Costo MXN</th><th>Margen</th><th>Stock</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Categoria</th><th>Precio MXN</th><th>Costo MXN</th><th>Margen</th><th>Acciones</th></tr></thead>
       <tbody>${filtered.map((product) => {
         const margin = product.price > 0 ? (((product.price - product.cost) / product.price) * 100).toFixed(0) : '0';
-        const badge = product.stock === 0 ? 'badge-red' : product.stock < 10 ? 'badge-amber' : 'badge-green';
         return `<tr>
-          <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent-mist);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-dark)">${CAT_ICONS[product.cat] || DEFAULT_ICON}</div><strong>${esc(product.name)}</strong></div></td>
+          <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:var(--accent-mist);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-dark)">${categorySvg(product.cat)}</div><strong>${esc(product.name)}</strong></div></td>
           <td><span class="badge badge-sky">${esc(product.cat)}</span></td>
           <td style="font-family:var(--mono);font-weight:700;color:var(--accent-dark)">$${fmt(product.price)}</td>
           <td style="font-family:var(--mono);color:var(--stone)">$${fmt(product.cost)}</td>
           <td><span class="profit-badge profit-up">↑ ${margin}%</span></td>
-          <td><span class="badge ${badge}">${product.stock} uds</span></td>
           <td><div style="display:flex;gap:6px">
             <button class="btn btn-amber btn-sm" onclick="openProductModal(${product.id})">Editar</button>
             <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Eliminar</button>
@@ -2427,7 +3135,6 @@ function openProductModal(id) {
   document.getElementById('pName').value = product?.name || '';
   document.getElementById('pPrice').value = product?.price || '';
   document.getElementById('pCost').value = product?.cost || '';
-  document.getElementById('pStock').value = product?.stock ?? '';
   document.getElementById('pEditId').value = product?.id || '';
   const categorySelect = document.getElementById('pCat');
   categorySelect.innerHTML = state.categories.map((category) => `
@@ -2440,6 +3147,10 @@ function openProductModal(id) {
     maxSelect: Number(g.maxSelect) || 1,
     options: Array.isArray(g.options) ? g.options.map(o => ({ name: o.name || '', priceDelta: Number(o.priceDelta) || 0 })) : [],
   })) : [];
+  const pImageFileEl = document.getElementById('pImageFile');
+  if (pImageFileEl) pImageFileEl.value = '';
+  document.getElementById('pImageData').value = product?.image || '';
+  renderProductImagePreview(product?.image || '');
   window.productVariantBuilder = variants;
   renderProductVariantGroups();
   openModal('productModal');
@@ -2550,6 +3261,136 @@ function collectProductVariants() {
     .filter(g => g.name && g.options.length > 0);
 }
 
+// ===================== FOTOS (PRODUCTOS, COMBOS Y LOGO) =====================
+// Tope del data URL ya comprimido. El servidor acepta hasta 25 MB, pero mantener
+// las fotos ligeras evita inflar la base de datos y los respaldos, y que el menu
+// tarde en pintar cuando hay muchos productos.
+const IMAGE_MAX_CHARS = 140 * 1024;
+
+// Convierte cualquier foto a un JPEG compacto y devuelve el data URL.
+// - Fondo blanco: un PNG con transparencia salia con el fondo en negro.
+// - Baja calidad y despues tamano hasta entrar en IMAGE_MAX_CHARS, para que
+//   ninguna foto se quede sin guardar por pesada.
+function processImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) return reject(new Error('Selecciona una imagen válida'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('No se pudo procesar la imagen'));
+      img.onload = () => {
+        const render = (maxSide, quality) => {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (!w || !h) throw new Error('sin dimensiones');
+          if (w > maxSide || h > maxSide) {
+            const scale = Math.min(maxSide / w, maxSide / h);
+            w = Math.max(1, Math.round(w * scale));
+            h = Math.max(1, Math.round(h * scale));
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          return canvas.toDataURL('image/jpeg', quality);
+        };
+        try {
+          let out = '';
+          for (const maxSide of [600, 480, 380, 300]) {
+            for (const quality of [0.82, 0.7, 0.6, 0.5]) {
+              out = render(maxSide, quality);
+              if (out.length <= IMAGE_MAX_CHARS) return resolve(out);
+            }
+          }
+          resolve(out);
+        } catch (e) {
+          reject(new Error('No se pudo procesar la imagen'));
+        }
+      };
+      img.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Vista previa compartida por el formulario de producto y el de combo.
+function renderImagePreview(previewId, removeBtnId, dataUrl) {
+  const box = document.getElementById(previewId);
+  const rm = document.getElementById(removeBtnId);
+  if (!box) return;
+  if (dataUrl) {
+    box.innerHTML = `<img src="${dataUrl}" alt="preview">`;
+    box.classList.add('has-img');
+    if (rm) rm.style.display = '';
+  } else {
+    box.innerHTML = `<span>Sin imagen</span>`;
+    box.classList.remove('has-img');
+    if (rm) rm.style.display = 'none';
+  }
+}
+
+async function handleProductImage(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const dataUrl = await processImageFile(file);
+    document.getElementById('pImageData').value = dataUrl;
+    renderProductImagePreview(dataUrl);
+  } catch (error) {
+    showToast(error.message, 'error');
+    event.target.value = '';
+  }
+}
+
+function removeProductImage() {
+  document.getElementById('pImageData').value = '';
+  const f = document.getElementById('pImageFile');
+  if (f) f.value = '';
+  renderProductImagePreview('');
+}
+
+function renderProductImagePreview(dataUrl) {
+  renderImagePreview('pImagePreview', 'pImageRemoveBtn', dataUrl);
+}
+
+async function handleComboImage(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const dataUrl = await processImageFile(file);
+    document.getElementById('cImageData').value = dataUrl;
+    if (window.comboBuilderState) window.comboBuilderState.image = dataUrl;
+    renderComboImagePreview(dataUrl);
+  } catch (error) {
+    showToast(error.message, 'error');
+    event.target.value = '';
+  }
+}
+
+function removeComboImage() {
+  document.getElementById('cImageData').value = '';
+  if (window.comboBuilderState) window.comboBuilderState.image = null;
+  const f = document.getElementById('cImageFile');
+  if (f) f.value = '';
+  renderComboImagePreview('');
+}
+
+function renderComboImagePreview(dataUrl) {
+  renderImagePreview('cImagePreview', 'cImageRemoveBtn', dataUrl);
+}
+
+// Mensaje entendible cuando el servidor rechaza una peticion.
+async function apiError(res) {
+  try {
+    const data = await res.json();
+    if (data && data.error) return data.error;
+  } catch (e) { /* la respuesta no era JSON */ }
+  return `El servidor rechazó el guardado (${res.status})`;
+}
+
 async function saveProduct() {
   const id = document.getElementById('pEditId').value;
   const data = {
@@ -2557,8 +3398,10 @@ async function saveProduct() {
     price: toMoney(document.getElementById('pPrice').value),
     cost: toMoney(document.getElementById('pCost').value),
     cat: document.getElementById('pCat').value,
-    stock: toInt(document.getElementById('pStock').value),
+    // Inventario retirado: el stock ya no se captura ni se controla; se conserva 0 por compatibilidad.
+    stock: (id ? (productById(Number(id))?.stock ?? 0) : 0),
     variants: collectProductVariants(),
+    image: document.getElementById('pImageData').value || null,
   };
 
   if (!data.name || data.price <= 0) {
@@ -2582,11 +3425,14 @@ async function saveProduct() {
 
   try {
     if (id) {
-      await fetch(`/api/products/${id}`, {
+      // Comprobar la respuesta: si el servidor rechaza el guardado (por ejemplo una
+      // imagen demasiado pesada) hay que avisar, no darlo por bueno y perder el cambio.
+      const res = await fetch(`/api/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      if (!res.ok) throw new Error(await apiError(res));
       const index = state.products.findIndex((product) => product.id === Number(id));
       if (index !== -1) {
         state.products[index] = { ...state.products[index], ...data };
@@ -2598,6 +3444,7 @@ async function saveProduct() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      if (!res.ok) throw new Error(await apiError(res));
       const { id: newId } = await res.json();
       data.id = newId;
       state.products.push(data);
@@ -2607,7 +3454,7 @@ async function saveProduct() {
     navigateTo('products');
   } catch (error) {
     console.error('Error saving product:', error);
-    showToast('Error al guardar producto', 'error');
+    showToast(error.message || 'Error al guardar producto', 'error');
   }
 }
 
@@ -2642,11 +3489,19 @@ function buildCategories() {
         Agregar categoría
       </button>
     </div>
+    <p style="color:var(--stone);font-size:12.5px;margin:-4px 0 14px">Usa las flechas para definir el orden en que las categorías aparecen en el punto de venta.</p>
     <table class="data-table">
-      <thead><tr><th>Nombre</th><th>Productos</th><th>Acciones</th></tr></thead>
-      <tbody>${state.categories.map((category) => {
+      <thead><tr><th style="width:70px">Orden</th><th>Ícono</th><th>Nombre</th><th>Productos</th><th>Acciones</th></tr></thead>
+      <tbody>${state.categories.map((category, index) => {
         const productCount = state.products.filter(p => p.cat === category.name).length;
+        const isFirst = index === 0;
+        const isLast = index === state.categories.length - 1;
         return `<tr>
+          <td><div style="display:flex;gap:4px">
+            <button class="btn btn-secondary btn-sm cat-move" onclick="moveCategory(${category.id}, -1)" ${isFirst ? 'disabled' : ''} title="Subir">▲</button>
+            <button class="btn btn-secondary btn-sm cat-move" onclick="moveCategory(${category.id}, 1)" ${isLast ? 'disabled' : ''} title="Bajar">▼</button>
+          </div></td>
+          <td><span class="tbl-ic" style="color:var(--accent-dark)">${iconSvg(category.icon, 20)}</span></td>
           <td><strong>${esc(category.name)}</strong></td>
           <td>${productCount} productos</td>
           <td><div style="display:flex;gap:6px">
@@ -2674,6 +3529,10 @@ function openCategoryModal(id = null) {
         <label>Nombre de la categoría</label>
         <input type="text" id="catName" value="${category ? esc(category.name) : ''}" placeholder="Ej. Platos Fuertes">
       </div>
+      <div class="form-group">
+        <label>Ícono</label>
+        ${iconPickerHtml(category?.icon, 'catIconPick')}
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
@@ -2686,6 +3545,7 @@ function openCategoryModal(id = null) {
 
 async function saveCategory(id) {
   const name = document.getElementById('catName').value.trim();
+  const icon = document.getElementById('catIconPick')?.value || null;
   if (!name) {
     showToast('El nombre es requerido', 'error');
     return;
@@ -2695,20 +3555,20 @@ async function saveCategory(id) {
       await fetch(`/api/categories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, icon })
       });
       const category = state.categories.find(c => c.id === id);
-      if (category) category.name = name;
+      if (category) { category.name = name; category.icon = icon; }
     } else {
       const res = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, icon })
       });
       const newCat = await res.json();
-      state.categories.push(newCat);
+      state.categories.push({ id: newCat.id, name, icon });
     }
-    document.querySelector('.modal-overlay[data-modal-type="category"]').remove();
+    document.querySelector('.modal-overlay[data-modal-type="category"]')?.remove();
     renderPage('categories');
     showToast('Categoría guardada', 'success');
   } catch (error) {
@@ -2730,6 +3590,28 @@ async function deleteCategory(id) {
   }
 }
 
+// Mueve una categoria una posicion arriba (-1) o abajo (1) y guarda el orden.
+async function moveCategory(id, dir) {
+  const index = state.categories.findIndex(c => c.id === id);
+  if (index === -1) return;
+  const target = index + dir;
+  if (target < 0 || target >= state.categories.length) return;
+  // Reordenar en memoria (optimista) para que la interfaz responda al instante.
+  const list = state.categories;
+  [list[index], list[target]] = [list[target], list[index]];
+  renderPage('categories');
+  try {
+    await fetch('/api/categories/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: list.map(c => c.id) })
+    });
+  } catch (error) {
+    console.error('Error reordering categories:', error);
+    showToast('Error al guardar el orden', 'error');
+  }
+}
+
 function buildCombos() {
   if (currentUser.role !== 'owner') return restricted();
   return `<div>
@@ -2741,9 +3623,10 @@ function buildCombos() {
       </button>
     </div>
     <table class="data-table">
-      <thead><tr><th>Nombre</th><th>Precio</th><th>Artículos</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Ícono</th><th>Nombre</th><th>Precio</th><th>Artículos</th><th>Acciones</th></tr></thead>
       <tbody>${state.combos.map((combo) => `
         <tr>
+          <td><span class="tbl-ic" style="color:var(--accent-dark)">${iconSvg(combo.icon, 20)}</span></td>
           <td><strong>${esc(combo.name)}</strong><div class="mi-desc" style="margin-top:4px">${esc(combo.description || '')}</div></td>
           <td>$${fmt(combo.price)} MXN</td>
           <td>${combo.items?.length || 0}</td>
@@ -2764,8 +3647,11 @@ function openComboModal(id = null) {
     name: combo?.name || '',
     price: combo?.price || 0,
     description: combo?.description || '',
+    icon: combo?.icon || null,
+    image: combo?.image || null,
     items: combo?.items ? combo.items.map((item) => ({ ...item })) : [],
   };
+  const comboImage = window.comboBuilderState.image;
   const productOptions = state.products.map((product) => `<option value="${product.id}">${esc(product.name)}</option>`).join('');
   const modal = document.createElement('div');
   modal.className = 'modal-overlay open';
@@ -2783,6 +3669,22 @@ function openComboModal(id = null) {
       <div class="form-group">
         <label>Descripción</label>
         <input type="text" id="comboDesc" value="${esc(window.comboBuilderState.description)}" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label>Ícono</label>
+        ${iconPickerHtml(window.comboBuilderState.icon, 'comboIconPick')}
+      </div>
+      <div class="form-group">
+        <label>Imagen del combo (opcional)</label>
+        <div class="p-image-row">
+          <div class="p-image-preview ${comboImage ? 'has-img' : ''}" id="cImagePreview">${comboImage ? `<img src="${comboImage}" alt="preview">` : '<span>Sin imagen</span>'}</div>
+          <div class="p-image-actions">
+            <input class="form-input" type="file" id="cImageFile" accept="image/*" onchange="handleComboImage(event)">
+            <button type="button" class="btn btn-secondary btn-sm" id="cImageRemoveBtn" onclick="removeComboImage()" style="display:${comboImage ? '' : 'none'}">Quitar imagen</button>
+            <div class="p-image-hint">Se mostrará grande en la tarjeta del combo, sobre el nombre.</div>
+          </div>
+        </div>
+        <input type="hidden" id="cImageData" value="${comboImage || ''}">
       </div>
       <div class="form-row">
         <div class="form-group" style="flex:3">
@@ -2851,6 +3753,8 @@ async function saveCombo(id) {
   const name = document.getElementById('comboName').value.trim();
   const description = document.getElementById('comboDesc').value.trim();
   const price = Number(document.getElementById('comboPrice').value) || 0;
+  const icon = document.getElementById('comboIconPick')?.value || null;
+  const image = document.getElementById('cImageData')?.value || null;
   const items = window.comboBuilderState.items.map(item => ({
     id: item.id,
     qty: item.qty,
@@ -2859,26 +3763,27 @@ async function saveCombo(id) {
   if (!name) return showToast('El nombre del combo es requerido', 'error');
   if (!items.length) return showToast('Agrega al menos un producto al combo', 'error');
   try {
-    const payload = { name, description, price, items };
+    const payload = { name, description, price, items, icon, image };
     const res = await fetch(id ? `/api/combos/${id}` : '/api/combos', {
       method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    if (!res.ok) throw new Error(await apiError(res));
     const result = await res.json();
-    const updatedCombo = { id: id || result.id, name, description, price, items };
+    const updatedCombo = { id: id || result.id, name, description, price, items, icon, image };
     if (id) {
       const index = state.combos.findIndex((combo) => combo.id === id);
       if (index !== -1) state.combos[index] = updatedCombo;
     } else {
       state.combos.push(updatedCombo);
     }
-    document.querySelector('.modal-overlay[data-modal-type="combo"]').remove();
+    document.querySelector('.modal-overlay[data-modal-type="combo"]')?.remove();
     renderPage('combos');
     showToast('Combo guardado', 'success');
   } catch (error) {
     console.error('Error saving combo:', error);
-    showToast('Error al guardar combo', 'error');
+    showToast(error.message || 'Error al guardar combo', 'error');
   }
 }
 
@@ -2920,7 +3825,7 @@ function buildInventory() {
         const badge = pct > 50 ? 'badge-green' : pct > 20 ? 'badge-amber' : 'badge-red';
         const label = pct > 50 ? 'Bueno' : pct > 20 ? 'Bajo' : 'Critico';
         return `<tr>
-          <td><div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;background:var(--accent-mist);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--accent-dark)">${CAT_ICONS[product.cat] || DEFAULT_ICON}</div><strong>${esc(product.name)}</strong></div></td>
+          <td><div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;background:var(--accent-mist);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--accent-dark)">${categorySvg(product.cat)}</div><strong>${esc(product.name)}</strong></div></td>
           <td><span class="badge badge-sky">${esc(product.cat)}</span></td>
           <td><span class="badge ${badge}" style="font-family:var(--mono)">${product.stock} uds</span></td>
           <td style="width:170px">
@@ -3217,7 +4122,7 @@ function buildDashboard() {
       <table class="data-table">
         <thead><tr><th>Producto</th><th>Unidades</th><th>Ingresos MXN</th></tr></thead>
         <tbody>${(topProducts.length ? topProducts : [{ name: 'Sin ventas', cat: 'Platos Fuertes', qty: 0, revenue: 0 }]).map((product) => `
-          <tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;background:var(--accent-mist);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent-dark)">${CAT_ICONS[product.cat] || DEFAULT_ICON}</div>${esc(product.name)}</div></td>
+          <tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;background:var(--accent-mist);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent-dark)">${categorySvg(product.cat)}</div>${esc(product.name)}</div></td>
           <td style="font-family:var(--mono)">${product.qty}</td>
           <td style="font-family:var(--mono);color:var(--accent-dark);font-weight:700">$${fmt(product.revenue)}</td></tr>
         `).join('')}
@@ -3225,6 +4130,358 @@ function buildDashboard() {
       </table>
     </div>
   </div>`;
+}
+
+// ===================== REPORTES DE VENTAS =====================
+// Periodo activo del reporte: week | month | prevmonth | year | custom
+let reportRange = 'week';
+let reportFrom = '';
+let reportTo = '';
+
+const REPORT_TABS = [
+  { key: 'today', label: 'Hoy' },
+  { key: 'week', label: 'Semana actual' },
+  { key: 'month', label: 'Mes actual' },
+  { key: 'prevmonth', label: 'Mes anterior' },
+  { key: 'year', label: 'Año actual' },
+  { key: 'custom', label: 'Periodo...' },
+];
+
+function startOfDay(date) { const d = new Date(date); d.setHours(0, 0, 0, 0); return d; }
+function endOfDay(date) { const d = new Date(date); d.setHours(23, 59, 59, 999); return d; }
+
+// Devuelve el rango de fechas del periodo elegido y si se agrupa por dia o por mes.
+function getReportPeriod() {
+  const now = new Date();
+  if (reportRange === 'today') {
+    return { start: startOfDay(now), end: endOfDay(now), unit: 'day' };
+  }
+  if (reportRange === 'month') {
+    return { start: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)), end: endOfDay(now), unit: 'day' };
+  }
+  if (reportRange === 'prevmonth') {
+    return {
+      start: startOfDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      end: endOfDay(new Date(now.getFullYear(), now.getMonth(), 0)),
+      unit: 'day',
+    };
+  }
+  if (reportRange === 'year') {
+    return { start: startOfDay(new Date(now.getFullYear(), 0, 1)), end: endOfDay(now), unit: 'month' };
+  }
+  if (reportRange === 'custom') {
+    const start = startOfDay(reportFrom ? new Date(`${reportFrom}T00:00:00`) : now);
+    const end = endOfDay(reportTo ? new Date(`${reportTo}T00:00:00`) : now);
+    const days = Math.round((end - start) / 86400000);
+    return { start, end, unit: days > 92 ? 'month' : 'day' };
+  }
+  // Semana actual: de lunes a hoy.
+  const start = startOfDay(now);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return { start, end: endOfDay(now), unit: 'day' };
+}
+
+function reportPeriodLabel() {
+  const tab = REPORT_TABS.find(t => t.key === reportRange);
+  return tab ? tab.label.replace('...', ' seleccionado') : 'Periodo';
+}
+
+function reportBucketLabel(key, unit) {
+  if (unit === 'month') {
+    const [year, month] = key.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString('es-MX', { month: 'short' });
+  }
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
+}
+
+function getReportData() {
+  const period = getReportPeriod();
+  const sales = state.salesRecords.filter((sale) => {
+    if (sale.status !== 'Pagado') return false;
+    const date = new Date(sale.completedAt);
+    return date >= period.start && date <= period.end;
+  });
+
+  const revenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+  const cost = sales.reduce((sum, sale) => sum + (sale.cost || 0), 0);
+
+  const buckets = new Map();
+  const cats = new Map();
+  const prods = new Map();
+  const pays = new Map();
+  const vars = new Map();
+
+  // Acumula variantes vendidas (guisos, sabores, etc.) del periodo, incluidas las de combos.
+  const addVariant = (name, variantLabel, qty, price) => {
+    if (!variantLabel) return;
+    const key = `${name} · ${variantLabel}`;
+    const entry = vars.get(key) || { label: key, qty: 0, revenue: 0 };
+    entry.qty += qty || 0;
+    entry.revenue += (qty || 0) * (price || 0);
+    vars.set(key, entry);
+  };
+
+  sales.forEach((sale) => {
+    const date = new Date(sale.completedAt);
+    const key = period.unit === 'month'
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      : toLocalDateStr(date);
+    const bucket = buckets.get(key) || { key, revenue: 0, cost: 0, orders: 0 };
+    bucket.revenue += sale.total || 0;
+    bucket.cost += sale.cost || 0;
+    bucket.orders += 1;
+    buckets.set(key, bucket);
+
+    const items = Array.isArray(sale.items) ? sale.items : [];
+    items.forEach((item) => {
+      const amount = (item.price || 0) * (item.qty || 0);
+      const catName = item.isCombo ? 'Combos' : (item.cat || 'Sin categoría');
+      const cat = cats.get(catName) || { name: catName, qty: 0, revenue: 0 };
+      cat.qty += item.qty || 0;
+      cat.revenue += amount;
+      cats.set(catName, cat);
+
+      const prodName = item.name || 'Sin nombre';
+      const prod = prods.get(prodName) || { name: prodName, cat: catName, qty: 0, revenue: 0 };
+      prod.qty += item.qty || 0;
+      prod.revenue += amount;
+      prods.set(prodName, prod);
+
+      // Variantes elegidas (incluye las piezas de un combo, cada una con su guiso/sabor).
+      addVariant(item.name, item.variantLabel, item.qty, item.price);
+      if (item.isCombo && Array.isArray(item.comboItems)) {
+        item.comboItems.forEach((ci) => addVariant(ci.name || '', ci.variantLabel, (ci.qty || 1) * (item.qty || 1), 0));
+      }
+    });
+
+    // Una venta puede llevar varios pagos (efectivo + tarjeta, etc.).
+    const list = Array.isArray(sale.payments) && sale.payments.length
+      ? sale.payments
+      : [{ method: sale.paymentMethod || 'Efectivo', amount: sale.total || 0 }];
+    list.forEach((payment) => {
+      const method = payment.method || 'Otro';
+      const entry = pays.get(method) || { method, amount: 0, count: 0 };
+      entry.amount += payment.amount || 0;
+      entry.count += 1;
+      pays.set(method, entry);
+    });
+  });
+
+  const series = [...buckets.values()]
+    .sort((a, b) => (a.key < b.key ? -1 : 1))
+    .map(entry => ({ ...entry, profit: entry.revenue - entry.cost, label: reportBucketLabel(entry.key, period.unit) }));
+
+  const byRevenue = (a, b) => b.revenue - a.revenue;
+  const categories = [...cats.values()].sort(byRevenue);
+  const catTotal = categories.reduce((sum, c) => sum + c.revenue, 0);
+
+  return {
+    period,
+    sales,
+    revenue: toMoney(revenue),
+    cost: toMoney(cost),
+    profit: toMoney(revenue - cost),
+    margin: revenue ? (revenue - cost) / revenue * 100 : 0,
+    orders: sales.length,
+    average: sales.length ? toMoney(revenue / sales.length) : 0,
+    series,
+    categories: categories.map(c => ({ ...c, pct: catTotal ? Math.round(c.revenue / catTotal * 100) : 0 })),
+    products: [...prods.values()].sort((a, b) => b.qty - a.qty || b.revenue - a.revenue).slice(0, 12),
+    variants: [...vars.values()].sort((a, b) => b.qty - a.qty || b.revenue - a.revenue).slice(0, 12),
+    payments: [...pays.values()].sort((a, b) => b.amount - a.amount),
+  };
+}
+
+function setReportRange(range) {
+  reportRange = range;
+  if (range === 'custom' && !reportFrom) {
+    const now = new Date();
+    reportFrom = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+    reportTo = toLocalDateStr(now);
+  }
+  renderPage('reports');
+}
+
+function setReportFrom(value) { reportFrom = value; renderPage('reports'); }
+function setReportTo(value) { reportTo = value; renderPage('reports'); }
+
+function buildReports() {
+  if (currentUser.role !== 'owner') return restricted();
+  const data = getReportData();
+  const fmtDate = d => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  const maxBar = Math.max(1, ...data.series.map(s => s.revenue));
+  // Con muchas barras las cifras encima se encinan: se dejan solo en periodos cortos
+  // (el importe exacto siempre esta en la tabla y en el tooltip de la barra).
+  const showBarValues = data.series.length <= 12;
+
+  return `<div class="report-page">
+    <div class="rep-head">
+      <div>
+        <div class="rep-title">Resumen de ventas — ${esc(reportPeriodLabel())}</div>
+        <div class="rep-sub">${esc(fmtDate(data.period.start))} al ${esc(fmtDate(data.period.end))}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="exportReport()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+
+    <div class="rep-tabs">
+      ${REPORT_TABS.map(tab => `
+        <button class="rep-tab ${reportRange === tab.key ? 'active' : ''}" onclick="setReportRange('${tab.key}')">${esc(tab.label)}</button>
+      `).join('')}
+      ${reportRange === 'custom' ? `
+        <span class="rep-dates">
+          <input type="date" value="${esc(reportFrom)}" onchange="setReportFrom(this.value)">
+          <span>a</span>
+          <input type="date" value="${esc(reportTo)}" onchange="setReportTo(this.value)">
+        </span>` : ''}
+    </div>
+
+    ${!data.orders ? `
+      <div class="rep-empty">
+        <svg width="42" height="42" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--stone-light)"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M4 4h16v16H4z"/></svg>
+        <p>No hay ventas pagadas en este periodo.</p>
+      </div>
+    ` : `
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="rep-legend">
+          <span><i style="background:var(--accent)"></i> Ventas</span>
+          <span><i style="background:var(--accent-dark)"></i> Ganancia</span>
+        </div>
+        <div class="rep-chart">
+          ${data.series.map(entry => `
+            <div class="rep-col" title="${esc(entry.label)}: $${fmt(entry.revenue)} en ${entry.orders} venta(s)">
+              <div class="rep-bars">
+                <div class="rep-bar ventas" style="height:${Math.max(3, Math.round(entry.revenue / maxBar * 130))}px"></div>
+                <div class="rep-bar ganancia" style="height:${Math.max(3, Math.round(Math.max(0, entry.profit) / maxBar * 130))}px"></div>
+              </div>
+              ${showBarValues ? `<div class="rep-col-val">$${fmt(entry.revenue)}</div>` : ''}
+              <div class="rep-col-label">${esc(entry.label)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Ventas totales</div><div class="stat-value">$${fmt(data.revenue)}</div><div class="stat-sub">${data.orders} venta(s)</div></div>
+        <div class="stat-card sky"><div class="stat-label">Venta promedio</div><div class="stat-value">$${fmt(data.average)}</div><div class="stat-sub">Ticket promedio del periodo</div></div>
+        <div class="stat-card amber"><div class="stat-label">Ganancia</div><div class="stat-value">$${fmt(data.profit)}</div><div class="stat-sub">Ventas menos costo</div></div>
+        <div class="stat-card rose"><div class="stat-label">Margen de utilidad</div><div class="stat-value">${data.margin.toFixed(2)}%</div><div class="stat-sub">Promedio del periodo</div></div>
+      </div>
+
+      <div class="rep-grid">
+        <div>
+          <div class="section-title">Ventas por ${data.period.unit === 'month' ? 'mes' : 'día'}</div>
+          <table class="data-table">
+            <thead><tr><th>${data.period.unit === 'month' ? 'Mes' : 'Día'}</th><th>Ventas</th><th>Ganancia</th><th>Tickets</th></tr></thead>
+            <tbody>
+              ${data.series.map(entry => `<tr>
+                <td><strong>${esc(entry.label)}</strong></td>
+                <td style="font-family:var(--mono);color:var(--accent-dark);font-weight:700">$${fmt(entry.revenue)}</td>
+                <td style="font-family:var(--mono)">$${fmt(entry.profit)}</td>
+                <td style="font-family:var(--mono)">${entry.orders}</td>
+              </tr>`).join('')}
+              <tr class="rep-total"><td><strong>Total</strong></td>
+                <td style="font-family:var(--mono)"><strong>$${fmt(data.revenue)}</strong></td>
+                <td style="font-family:var(--mono)"><strong>$${fmt(data.profit)}</strong></td>
+                <td style="font-family:var(--mono)"><strong>${data.orders}</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="section-title">Ventas por categoría</div>
+          <table class="data-table">
+            <thead><tr><th>Categoría</th><th>Unidades</th><th>Importe</th><th>%</th></tr></thead>
+            <tbody>
+              ${data.categories.map(cat => `<tr>
+                <td><strong>${esc(cat.name)}</strong></td>
+                <td style="font-family:var(--mono)">${cat.qty}</td>
+                <td style="font-family:var(--mono);color:var(--accent-dark);font-weight:700">$${fmt(cat.revenue)}</td>
+                <td style="width:96px">
+                  <div class="rep-pct"><div class="rep-pct-bar" style="width:${cat.pct}%"></div><span>${cat.pct}%</span></div>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="rep-grid" style="margin-top:16px">
+        <div>
+          <div class="section-title">Productos más vendidos — ${esc(reportPeriodLabel())}</div>
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Producto</th><th>Unidades</th><th>Importe</th></tr></thead>
+            <tbody>
+              ${data.products.map((product, index) => `<tr>
+                <td style="font-family:var(--mono);color:var(--stone);width:28px">${index + 1}</td>
+                <td><strong>${esc(product.name)}</strong><div style="font-size:11px;color:var(--stone)">${esc(product.cat || '')}</div></td>
+                <td style="font-family:var(--mono);font-weight:700">${product.qty}</td>
+                <td style="font-family:var(--mono);color:var(--accent-dark)">$${fmt(product.revenue)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="section-title">Variantes más vendidas — ${esc(reportPeriodLabel())}</div>
+          ${data.variants.length ? `
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Variante</th><th>Unidades</th></tr></thead>
+            <tbody>
+              ${data.variants.map((variant, index) => `<tr>
+                <td style="font-family:var(--mono);color:var(--stone);width:28px">${index + 1}</td>
+                <td><strong>${esc(variant.label)}</strong></td>
+                <td style="font-family:var(--mono);font-weight:700">${variant.qty}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>` : `<div style="padding:18px;text-align:center;color:var(--stone);font-size:13px;background:var(--surface);border-radius:var(--r-sm)">Sin ventas con variantes en este periodo.</div>`}
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="section-title">Ventas por forma de pago</div>
+        <table class="data-table">
+          <thead><tr><th>Forma de pago</th><th>Movimientos</th><th>Importe</th></tr></thead>
+          <tbody>
+            ${data.payments.map(payment => `<tr>
+              <td><strong>${esc(payment.method)}</strong></td>
+              <td style="font-family:var(--mono)">${payment.count}</td>
+              <td style="font-family:var(--mono);color:var(--accent-dark);font-weight:700">$${fmt(payment.amount)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  </div>`;
+}
+
+function exportReport() {
+  const data = getReportData();
+  const q = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const lines = [];
+  lines.push(`Reporte de ventas;${reportPeriodLabel()}`);
+  lines.push(`Del;${toLocalDateStr(data.period.start)};Al;${toLocalDateStr(data.period.end)}`);
+  lines.push('');
+  lines.push('Ventas totales;Tickets;Venta promedio;Ganancia;Margen %');
+  lines.push([data.revenue, data.orders, data.average, data.profit, data.margin.toFixed(2)].join(';'));
+  lines.push('');
+  lines.push(`${data.period.unit === 'month' ? 'Mes' : 'Dia'};Ventas;Ganancia;Tickets`);
+  data.series.forEach(e => lines.push([q(e.label), e.revenue, e.profit, e.orders].join(';')));
+  lines.push('');
+  lines.push('Categoria;Unidades;Importe;Porcentaje');
+  data.categories.forEach(c => lines.push([q(c.name), c.qty, c.revenue, `${c.pct}%`].join(';')));
+  lines.push('');
+  lines.push('Producto;Categoria;Unidades;Importe');
+  data.products.forEach(p => lines.push([q(p.name), q(p.cat), p.qty, p.revenue].join(';')));
+  lines.push('');
+  lines.push('Variante mas vendida;Unidades');
+  data.variants.forEach(v => lines.push([q(v.label), v.qty].join(';')));
+  lines.push('');
+  lines.push('Forma de pago;Movimientos;Importe');
+  data.payments.forEach(p => lines.push([q(p.method), p.count, p.amount].join(';')));
+  downloadTextFile(`reporte-${reportRange}-${toLocalDateStr(new Date())}.csv`, `﻿${lines.join('\n')}`, 'text/csv;charset=utf-8');
+  showToast('Reporte exportado', 'success');
 }
 
 // ===================== FINANCES =====================
@@ -3418,6 +4675,7 @@ function renderSalesListHTML() {
   return filtered.map(s => {
     const sItems = Array.isArray(s.items) ? s.items : (typeof s.items === 'string' ? (() => { try { return JSON.parse(s.items); } catch { return []; } })() : []);
     const arts = sItems.reduce((sum, i) => sum + i.qty, 0);
+    const hasPriceEdit = sItems.some(i => i.priceEdited);
     const sKey = s.id != null ? s.id : `tn-${s.ticketNumber}`;
     const sel = salesSelectedId != null && String(salesSelectedId) === String(sKey);
     const cancelled = s.status === 'Cancelado';
@@ -3431,7 +4689,7 @@ function renderSalesListHTML() {
       <div style="display:grid;grid-template-columns:38px 1fr auto 68px;align-items:center;gap:6px;padding:9px 14px">
         <span style="font-family:var(--mono);font-weight:700;font-size:11.5px;color:${cancelled?'#e53935':'var(--accent-dark)'}">#${s.ticketNumber}</span>
         <div>
-          <div style="font-size:12.5px;font-weight:600;color:${cancelled?'#c62828':'var(--charcoal)'}${cancelled?';text-decoration:line-through':''}">${formatTime(s.completedAt)}</div>
+          <div style="font-size:12.5px;font-weight:600;color:${cancelled?'#c62828':'var(--charcoal)'}${cancelled?';text-decoration:line-through':''}">${formatTime(s.completedAt)}${hasPriceEdit?` <span style="font-size:9px;font-weight:700;background:var(--amber);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">PRECIO ✎</span>`:''}</div>
           <div style="font-size:11px;color:var(--stone)">${esc(s.waiter)} · ${s.type==='llevar'?'Llevar':esc(s.mesa)}</div>
         </div>
         <div style="text-align:center;font-size:11px;color:var(--stone)">${arts}<br><span style="font-size:10px">art.</span></div>
@@ -3510,15 +4768,19 @@ function renderSaleDetailHTML() {
     <table class="data-table" style="margin-bottom:16px">
       <thead><tr><th style="width:40px">Cant.</th><th>Descripción</th><th style="text-align:right">Importe</th></tr></thead>
       <tbody>${saleItems.map(item => `
-        <tr>
+        <tr${item.priceEdited?' style="background:#fff8ec"':''}>
           <td style="font-family:var(--mono);font-weight:700;color:var(--accent-dark)">${item.qty}</td>
           <td>
             <span style="font-weight:500">${esc(item.name)}</span>
             ${item.variantLabel?`<div style="font-size:11px;color:var(--stone)">${esc(item.variantLabel)}</div>`:''}
             ${item.isCombo&&item.comboItems?.length?`<div style="font-size:11px;color:var(--stone);line-height:1.7">${item.comboItems.map(ci=>`• ${ci.qty}x ${esc(ci.name||'')}${ci.variantLabel?` (${esc(ci.variantLabel)})`:''}`).join('<br>')}</div>`:''}
+            ${item.priceEdited?`<div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:1px">⚑ ${priceEditLabel(item)}</div>`:''}
             ${item.notes?`<div style="font-size:11px;color:var(--accent-dark)">Nota: ${esc(item.notes)}</div>`:''}
           </td>
-          <td style="font-family:var(--mono);font-weight:600;text-align:right;color:var(--charcoal)">$${fmt(item.price*item.qty)}</td>
+          <td style="font-family:var(--mono);font-weight:600;text-align:right;color:var(--charcoal)">
+            ${item.priceEdited?`<div style="font-size:10.5px;color:var(--stone-light);text-decoration:line-through">$${fmt(item.originalPrice*item.qty)}</div>`:''}
+            $${fmt(item.price*item.qty)}
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -3695,6 +4957,7 @@ function renderMovementDetailHTML() {
           <div>
             <span style="font-size:13px;font-weight:600;color:var(--charcoal)">${esc(i.name)}</span>
             ${i.variantLabel ? `<span style="font-size:11px;color:var(--stone)"> · ${esc(i.variantLabel)}</span>` : ''}
+            ${i.priceEdited ? `<div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:1px">⚑ ${priceEditLabel(i)}</div>` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:12px;color:var(--stone)">${i.qty}x</span>
@@ -3964,32 +5227,26 @@ async function restoreBackup(name) {
 async function handleLogoUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    showToast('Selecciona una imagen valida', 'error');
+  // Antes se guardaba el archivo tal cual: una foto de celular no cabia en la
+  // peticion y el logo se perdia sin aviso. Ahora pasa por el mismo compresor.
+  const previous = state.settings.logoDataUrl;
+  try {
+    state.settings.logoDataUrl = await processImageFile(file);
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.settings)
+    });
+    if (!res.ok) throw new Error(await apiError(res));
+    syncBranding();
+    showToast('Logo actualizado', 'success');
+    navigateTo('settings');
+  } catch (error) {
+    state.settings.logoDataUrl = previous;
+    console.error('Error saving logo:', error);
+    showToast(error.message || 'Error al guardar logo', 'error');
     event.target.value = '';
-    return;
   }
-  const reader = new FileReader();
-  reader.onload = async () => {
-    state.settings.logoDataUrl = String(reader.result || '');
-    try {
-      await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state.settings)
-      });
-      syncBranding();
-      showToast('Logo actualizado', 'success');
-      navigateTo('settings');
-    } catch (error) {
-      console.error('Error saving logo:', error);
-      showToast('Error al guardar logo', 'error');
-    }
-  };
-  reader.onerror = () => {
-    showToast('No se pudo cargar el logo', 'error');
-  };
-  reader.readAsDataURL(file);
 }
 
 async function removeStoreLogo() {
@@ -4086,10 +5343,10 @@ async function confirmChangePassword() {
 
 // ===================== SEARCH =====================
 function doGlobalSearch(value) {
-  const title = document.getElementById('topbarTitle').textContent;
-  if (title === 'Punto de Venta') {
-    const grid = document.getElementById('menuGrid');
-    if (grid) grid.innerHTML = renderMenuItems(value);
+  const grid = document.getElementById('menuGrid');
+  if (grid) {
+    grid.innerHTML = renderMenuItems(value);
+    grid.scrollTop = 0;
     return;
   }
   if (!value || value.length < 2) {
@@ -4103,10 +5360,10 @@ function doGlobalSearch(value) {
   document.getElementById('searchCount').textContent = `${results.length} resultado(s) para "${value}"`;
   document.getElementById('searchGrid').innerHTML = results.length
     ? results.map((product) => `<div class="menu-item">
-        <div class="mi-icon">${CAT_ICONS[product.cat] || DEFAULT_ICON}</div>
+        <div class="mi-icon">${categorySvg(product.cat)}</div>
         <div class="mi-name">${esc(product.name)}</div>
         <div class="mi-price">$${fmt(product.price)} MXN</div>
-        <div class="mi-stock">Stock: ${product.stock} · ${esc(product.cat)}</div>
+        <div class="mi-stock">${esc(product.cat)}</div>
       </div>`).join('')
     : `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--stone)">Sin resultados</div>`;
   openModal('searchModal');
@@ -4131,9 +5388,26 @@ function closeModal(id) {
 
 document.addEventListener('click', (event) => {
   if (event.target.classList.contains('modal-overlay')) {
-    event.target.classList.remove('open');
+    // Los modales estaticos (con id) se ocultan; los flotantes (sin id) se eliminan
+    // por completo para que nunca queden "pegados" bloqueando la app.
+    if (event.target.id) event.target.classList.remove('open');
+    else event.target.remove();
   }
 });
+
+// Red de seguridad: la tecla Escape SIEMPRE cierra cualquier ventana emergente abierta.
+// Si por cualquier motivo una ventana quedara encima bloqueando la escritura o los clics,
+// el usuario puede recuperarse al instante presionando Escape.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const floating = document.querySelectorAll('.modal-overlay:not([id])');
+  if (floating.length) { floating.forEach((el) => el.remove()); return; }
+  document.querySelectorAll('.modal-overlay.open[id]').forEach((el) => el.classList.remove('open'));
+});
+
+// Al cambiar el tamano de la ventana cambia cuanto cabe en el ticket:
+// recalcular el aviso de "hay mas productos abajo".
+window.addEventListener('resize', updateScrollHint);
 
 function showToast(message, type) {
   const container = document.getElementById('toastCt');
